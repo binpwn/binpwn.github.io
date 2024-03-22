@@ -4,6 +4,19 @@
   
   
   <entry>
+    <title>Encrypt</title>
+    <link href="/2024/03/22/test/"/>
+    <url>/2024/03/22/test/</url>
+    
+    <content type="html"><![CDATA[<div class="hbe hbe-container" id="hexo-blog-encrypt" data-wpm="Oh, this is an invalid password. Check and try again, please." data-whm="OOPS, these decrypted content may changed, but you can still have a look.">  <script id="hbeData" type="hbeData" data-hmacdigest="34bbce3b99f175c347235b1968b3229ce6c0a88f6a1274ee56aa3c343ff8efd7">472f0d2124ee617a2f29ff331422d5d3584f9d78626ae0ccb8b4c00887daa741115c22a2b1121de8acd08966a17bb423</script>  <div class="hbe hbe-content">    <div class="hbe hbe-input hbe-input-default">      <input class="hbe hbe-input-field hbe-input-field-default" type="password" id="hbePass">      <label class="hbe hbe-input-label hbe-input-label-default" for="hbePass">        <span class="hbe hbe-input-label-content hbe-input-label-content-default">Pwn!!!</span>      </label>    </div>  </div></div><script data-pjax src="/lib/hbe.js"></script><link href="/css/hbe.style.css" rel="stylesheet" type="text/css">]]></content>
+    
+    
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Hello World</title>
     <link href="/2024/03/17/hello-world/"/>
     <url>/2024/03/17/hello-world/</url>
@@ -13,41 +26,10 @@
     
     <categories>
       
-      <category>category1</category>
+      <category>其他</category>
       
     </categories>
     
-    
-    <tags>
-      
-      <tag>tag1</tag>
-      
-    </tags>
-    
-  </entry>
-  
-  
-  
-  <entry>
-    <title>TestDjy</title>
-    <link href="/2024/03/17/test/"/>
-    <url>/2024/03/17/test/</url>
-    
-    <content type="html"><![CDATA[<p>dingjiayu</p>]]></content>
-    
-    
-    <categories>
-      
-      <category>category1</category>
-      
-    </categories>
-    
-    
-    <tags>
-      
-      <tag>tag1</tag>
-      
-    </tags>
     
   </entry>
   
