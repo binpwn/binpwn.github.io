@@ -16,21 +16,22 @@
   <meta name="author" content="DingJiayu">
   <meta name="keywords" content="">
   
-    <meta name="description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+    <meta name="description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Hello World">
-<meta property="og:url" content="https://binpwn.github.io/2024/03/17/hello-world/index.html">
+<meta property="og:title" content="博客搭建">
+<meta property="og:url" content="https://binpwn.github.io/2066/04/25/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/index.html">
 <meta property="og:site_name" content="binpwn&#39;s blog">
-<meta property="og:description" content="Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick">
+<meta property="og:description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2024-03-17T15:33:15.575Z">
-<meta property="article:modified_time" content="2024-03-18T09:01:55.019Z">
+<meta property="article:published_time" content="2066-04-24T16:24:03.000Z">
+<meta property="article:modified_time" content="2024-04-24T16:46:10.144Z">
 <meta property="article:author" content="DingJiayu">
+<meta property="article:tag" content="环境">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>Hello World - binpwn&#39;s blog</title>
+  <title>博客搭建 - binpwn&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -196,7 +197,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="Hello World"></span>
+            <span id="subtitle" data-typed-text="博客搭建"></span>
           
         </div>
 
@@ -207,8 +208,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2024-03-17 23:33" pubdate>
-          2024年3月17日 晚上
+        <time datetime="2066-04-25 00:24" pubdate>
+          2066年4月25日 凌晨
         </time>
       </span>
     
@@ -219,7 +220,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          18 字
+          611 字
         
       </span>
     
@@ -230,7 +231,7 @@
         
         
         
-          1 分钟
+          6 分钟
         
       </span>
     
@@ -267,12 +268,77 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">Hello World</h1>
+            <h1 id="seo-header">博客搭建</h1>
             
             
               <div class="markdown-body">
                 
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+                <h1 id="预准备"><a href="#预准备" class="headerlink" title="预准备"></a>预准备</h1><p>就是在电脑上安装一些所需的软件</p>
+<ul>
+<li><p>Git</p>
+<p>根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac</p>
+<p><code> brew install git </code></p>
+</li>
+<li><p>Node.js</p>
+<p>也是有多种不同的方式，比如MacOS可以用homebrew</p>
+<p><code> brew install node </code></p>
+</li>
+<li><p>Hexo</p>
+<p>安装好Node.js后，使用下面指令来安装hexo</p>
+<p><code> npm install -g hexo-cli </code></p>
+<p>安装过程中可能会遇到网络问题，这时换下国内镜像源即可，下面是淘宝镜像</p>
+<p><code> npm config set registry https://registry.npmmirror.com</code></p>
+</li>
+</ul>
+<h1 id="初步使用Hexo"><a href="#初步使用Hexo" class="headerlink" title="初步使用Hexo"></a>初步使用Hexo</h1><ul>
+<li><p>找一个位置创建我们的博客文件夹</p>
+<p><code> mkdir Blog </code></p>
+</li>
+<li><p>进入Blog文件夹，使用hexo进行初始化</p>
+<p><code> cd Blog </code></p>
+<p><code> hexo init </code></p>
+</li>
+<li><p>这时已经初始化完成，可以使用下面指令测试一下</p>
+<p><code> hexo s </code>打开server</p>
+<p>在网页中http:&#x2F;&#x2F;localhost:4000进行访问，如果显示blog就正常</p>
+</li>
+<li><p>下载主题</p>
+<p>正常如果是自己下载主题，需要将主题放在themes文件夹内</p>
+<p>详情就是根据主题提供的方式来，这里我使用的是<a target="_blank" rel="noopener" href="https://github.com/fluid-dev/hexo-theme-fluid">Fluid主题</a>，所以使用npm安装<br><code> npm install --save hexo-theme-fluid</code><br>这样就会将hexo-theme-fluid安装到node_moudles文件夹内，当然还要同时创建一个对应主题的配置文件</p>
+</li>
+<li><p>配置主题<br>主要是_config.yml来掌控整个配置，比如选用哪个主题等等<br>具体主题还要有其对应的配置文件，比如这里是fluid的配置文件：_config.fluid.yml</p>
+</li>
+</ul>
+<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><h2 id="github的配置"><a href="#github的配置" class="headerlink" title="github的配置"></a>github的配置</h2><ul>
+<li><p>创建一个githubPages仓库并进行相关设置</p>
+</li>
+<li><p>电脑端设置github的用户名和邮箱并生成rsa<br><code>git config --global user.name &quot;github用户名&quot;</code><br><code>git config --global user.email &quot;github注册的邮箱&quot;</code><br><code>ssh-keygen -t rsa -C &quot;github注册的邮箱&quot;</code>    </p>
+</li>
+<li><p>将本机生成的rsa设置到github仓库的上面<br><code>cat ~/.ssh/id_rsa.pub</code>将内容复制，进入github个人Settings中，SSH and GPG keys里面新建一个SSH keys粘贴进去即可</p>
+</li>
+<li><p>配置_config.yml，这里配置仓库链接时要注意使用ssh的形式，而不是https<br>在最下面添加:</p>
+<blockquote>
+</blockquote>
+<pre><code class="hljs">deploy:
+        type: git
+        repository: 自己的仓库地址，选用ssh的那个
+        branch: main
+</code></pre>
+</li>
+</ul>
+<h2 id="hexo生成相关的指令"><a href="#hexo生成相关的指令" class="headerlink" title="hexo生成相关的指令"></a>hexo生成相关的指令</h2><ul>
+<li><p>如果之前存在生成的旧版本，先clean一下<br><code>hexo clean</code></p>
+</li>
+<li><p>先在Blog内进行生成<br><code>hexo g</code>是用来generate的，会对应生成一个public文件夹，一会是将该文件夹内的内容传至github</p>
+</li>
+<li><p>准备进行上传至github<br><code>hexo d</code>是用来deploy的，会根据_config.yml配置进行上传至github上面</p>
+</li>
+</ul>
+<h2 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h2><p>格式如下：</p>
+<pre><code class="hljs">password: ******
+message: Pwn!!!
+</code></pre>
+<h1 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h1><p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
 <h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span><br></code></pre></td></tr></table></figure>
 
 <p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
@@ -303,7 +369,7 @@
     
       <span class="category-chain">
         
-  <a href="/categories/%E5%85%B6%E4%BB%96/" class="category-chain-item">其他</a>
+  <a href="/categories/%E4%B8%AA%E4%BA%BA/" class="category-chain-item">个人</a>
   
   
 
@@ -315,6 +381,13 @@
     </div>
   
   
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E7%8E%AF%E5%A2%83/" class="print-no-link">#环境</a>
+      
+    </div>
+  
 </div>
 
 
@@ -323,8 +396,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>Hello World</div>
-      <div>https://binpwn.github.io/2024/03/17/hello-world/</div>
+      <div>博客搭建</div>
+      <div>https://binpwn.github.io/2066/04/25/博客搭建/</div>
     </div>
     <div class="license-meta">
       
@@ -336,7 +409,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2024年3月17日</div>
+          <div>2066年4月25日</div>
         </div>
       
       
@@ -368,15 +441,15 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2024/03/22/test/" title="Encrypt">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Encrypt</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2024/04/25/geacon-macos/" title="geacon_macos">
+                        <span class="hidden-mobile">geacon_macos</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
