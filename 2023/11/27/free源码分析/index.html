@@ -1,0 +1,737 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="DingJiayu">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="free源码分析关于别名这里提一下，我们在编程中使用malloc或者free时，glibc中往往是对应的libc_malloc&#x2F;free，下面可以看到在glibc中是通过别名的方式来实现这种映射关系  libc_free大致流程如下： 1、检查一下是否有hook 2、关于mmaped memory，释放单独处理 3、获取ar，arena_for_chunk (p)如果是main_aren">
+<meta property="og:type" content="article">
+<meta property="og:title" content="free源码分析">
+<meta property="og:url" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="binpwn&#39;s blog">
+<meta property="og:description" content="free源码分析关于别名这里提一下，我们在编程中使用malloc或者free时，glibc中往往是对应的libc_malloc&#x2F;free，下面可以看到在glibc中是通过别名的方式来实现这种映射关系  libc_free大致流程如下： 1、检查一下是否有hook 2、关于mmaped memory，释放单独处理 3、获取ar，arena_for_chunk (p)如果是main_aren">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826165746269.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826170819299.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826172303730.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826172308253.png">
+<meta property="article:published_time" content="2023-11-27T15:42:25.000Z">
+<meta property="article:modified_time" content="2024-08-26T15:56:34.354Z">
+<meta property="article:author" content="DingJiayu">
+<meta property="article:tag" content="堆">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://binpwn.github.io/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826165746269.png">
+  
+  
+  
+  <title>free源码分析 - binpwn&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"binpwn.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>binpwn&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="free源码分析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-11-27 23:42" pubdate>
+          2023年11月27日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          15 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">free源码分析</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="free源码分析"><a href="#free源码分析" class="headerlink" title="free源码分析"></a>free源码分析</h1><h2 id="关于别名"><a href="#关于别名" class="headerlink" title="关于别名"></a>关于别名</h2><p>这里提一下，我们在编程中使用malloc或者free时，glibc中往往是对应的libc_malloc&#x2F;free，下面可以看到在glibc中是通过别名的方式来实现这种映射关系</p>
+<p><img src="/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826165746269.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="libc-free"><a href="#libc-free" class="headerlink" title="libc_free"></a>libc_free</h2><p>大致流程如下：</p>
+<p>1、检查一下是否有hook</p>
+<p>2、关于mmaped memory，释放单独处理</p>
+<p>3、获取ar，arena_for_chunk (p)如果是main_arena就直接返回arena，非主分配区就直接用heap_for_ptr计算，在heap的开头部分</p>
+<p>4、调用int_free函数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">void</span><br>__libc_free (<span class="hljs-type">void</span> *mem)<br>&#123;<br>  mstate ar_ptr;<br>  mchunkptr p;                          <span class="hljs-comment">/* chunk corresponding to mem */</span><br><br>  <span class="hljs-type">void</span> (*hook) (<span class="hljs-type">void</span> *, <span class="hljs-type">const</span> <span class="hljs-type">void</span> *)<br>    = atomic_forced_read (__free_hook);<br>  <span class="hljs-keyword">if</span> (__builtin_expect (hook != <span class="hljs-literal">NULL</span>, <span class="hljs-number">0</span>))<br>    &#123;<br>      (*hook)(mem, RETURN_ADDRESS (<span class="hljs-number">0</span>));<br>      <span class="hljs-keyword">return</span>;<br>    &#125;<br><br>  <span class="hljs-keyword">if</span> (mem == <span class="hljs-number">0</span>)                              <span class="hljs-comment">/* free(0) has no effect */</span><br>    <span class="hljs-keyword">return</span>;<br><br>  p = mem2chunk (mem);<br><br>  <span class="hljs-keyword">if</span> (chunk_is_mmapped (p))                       <span class="hljs-comment">/* release mmapped memory. */</span><br>    &#123;<br>      <span class="hljs-comment">/* see if the dynamic brk/mmap threshold needs adjusting */</span><br>      <span class="hljs-keyword">if</span> (!mp_.no_dyn_threshold<br>          &amp;&amp; p-&gt;size &gt; mp_.mmap_threshold<br>          &amp;&amp; p-&gt;size &lt;= DEFAULT_MMAP_THRESHOLD_MAX)<br>        &#123;<br>          mp_.mmap_threshold = chunksize (p);<br>          mp_.trim_threshold = <span class="hljs-number">2</span> * mp_.mmap_threshold;<br>          LIBC_PROBE (memory_mallopt_free_dyn_thresholds, <span class="hljs-number">2</span>,<br>                      mp_.mmap_threshold, mp_.trim_threshold);<br>        &#125;<br>      munmap_chunk (p);<br>      <span class="hljs-keyword">return</span>;<br>    &#125;<br><br>  ar_ptr = arena_for_chunk (p);<br>  _int_free (ar_ptr, p, <span class="hljs-number">0</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="int-free"><a href="#int-free" class="headerlink" title="_int_free"></a>_int_free</h2><h3 id="安全检查"><a href="#安全检查" class="headerlink" title="安全检查"></a>安全检查</h3><p>1、地址范围是否合法，地址是否对齐</p>
+<p>2、大小是否合法，大小是否对齐</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">static</span> <span class="hljs-type">void</span><br>_int_free (mstate av, mchunkptr p, <span class="hljs-type">int</span> have_lock)<br>&#123;<br>  INTERNAL_SIZE_T size;        <span class="hljs-comment">/* its size */</span><br>  mfastbinptr *fb;             <span class="hljs-comment">/* associated fastbin */</span><br>  mchunkptr nextchunk;         <span class="hljs-comment">/* next contiguous chunk */</span><br>  INTERNAL_SIZE_T nextsize;    <span class="hljs-comment">/* its size */</span><br>  <span class="hljs-type">int</span> nextinuse;               <span class="hljs-comment">/* true if nextchunk is used */</span><br>  INTERNAL_SIZE_T prevsize;    <span class="hljs-comment">/* size of previous contiguous chunk */</span><br>  mchunkptr bck;               <span class="hljs-comment">/* misc temp for linking */</span><br>  mchunkptr fwd;               <span class="hljs-comment">/* misc temp for linking */</span><br><br>  <span class="hljs-type">const</span> <span class="hljs-type">char</span> *errstr = <span class="hljs-literal">NULL</span>;<br>  <span class="hljs-type">int</span> locked = <span class="hljs-number">0</span>;<br><br>  size = chunksize (p);<br><br>  <span class="hljs-comment">/* Little security check which won&#x27;t hurt performance: the</span><br><span class="hljs-comment">     allocator never wrapps around at the end of the address space.</span><br><span class="hljs-comment">     Therefore we can exclude some size values which might appear</span><br><span class="hljs-comment">     here by accident or by &quot;design&quot; from some intruder.  */</span><br>  <span class="hljs-keyword">if</span> (__builtin_expect ((<span class="hljs-type">uintptr_t</span>) p &gt; (<span class="hljs-type">uintptr_t</span>) -size, <span class="hljs-number">0</span>)<br>      || __builtin_expect (misaligned_chunk (p), <span class="hljs-number">0</span>))<br>    &#123;<br>      errstr = <span class="hljs-string">&quot;free(): invalid pointer&quot;</span>;<br>    errout:<br>      <span class="hljs-keyword">if</span> (!have_lock &amp;&amp; locked)<br>        __libc_lock_unlock (av-&gt;mutex);<br>      malloc_printerr (check_action, errstr, chunk2mem (p), av);<br>      <span class="hljs-keyword">return</span>;<br>    &#125;<br>  <span class="hljs-comment">/* We know that each chunk is at least MINSIZE bytes in size or a</span><br><span class="hljs-comment">     multiple of MALLOC_ALIGNMENT.  */</span><br>  <span class="hljs-keyword">if</span> (__glibc_unlikely (size &lt; MINSIZE || !aligned_OK (size)))<br>    &#123;<br>      errstr = <span class="hljs-string">&quot;free(): invalid size&quot;</span>;<br>      <span class="hljs-keyword">goto</span> errout;<br>    &#125;<br><br></code></pre></td></tr></table></figure>
+
+<h3 id="处理fast-chunk【if】"><a href="#处理fast-chunk【if】" class="headerlink" title="处理fast chunk【if】"></a>处理fast chunk【if】</h3><p>1、注意下面的have_lock是int_free的第三个参数，来表示是否有锁。如果没锁，下面会首先进行上锁，然后再进行操作；</p>
+<p>2、安全检查：p的下一个chunk的大小是否合法，大小是否在范围内</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><code class="hljs C">  check_inuse_chunk(av, p);<span class="hljs-comment">//这里如果没有开启debug模式这里是没用的</span><br><br>  <span class="hljs-comment">/*</span><br><span class="hljs-comment">    If eligible, place chunk on a fastbin so it can be found</span><br><span class="hljs-comment">    and used quickly in malloc.</span><br><span class="hljs-comment">  */</span><br><br>  <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(size) &lt;= (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(get_max_fast ())<br><span class="hljs-comment">//下面这个宏也是需要开启才能生效的情况，默认下是关闭的</span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> TRIM_FASTBINS</span><br>      <span class="hljs-comment">/*</span><br><span class="hljs-comment">	If TRIM_FASTBINS set, don&#x27;t place chunks</span><br><span class="hljs-comment">	bordering top into fastbins</span><br><span class="hljs-comment">      */</span><br>      &amp;&amp; (chunk_at_offset(p, size) != av-&gt;top)<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>      ) &#123;<br><br>    <span class="hljs-keyword">if</span> (__builtin_expect (chunksize_nomask (chunk_at_offset (p, size))<br>			  &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>	|| __builtin_expect (chunksize (chunk_at_offset (p, size))<br>			     &gt;= av-&gt;system_mem, <span class="hljs-number">0</span>))<br>      &#123;<br>	<span class="hljs-comment">/* We might not have a lock at this point and concurrent modifications</span><br><span class="hljs-comment">	   of system_mem might have let to a false positive.  Redo the test</span><br><span class="hljs-comment">	   after getting the lock.  */</span><br>	<span class="hljs-keyword">if</span> (have_lock<br>	    || (&#123; assert (locked == <span class="hljs-number">0</span>);<br>		  __libc_lock_lock (av-&gt;mutex);<br>		  locked = <span class="hljs-number">1</span>;<br>		  chunksize_nomask (chunk_at_offset (p, size)) &lt;= <span class="hljs-number">2</span> * SIZE_SZ<br>		    || chunksize (chunk_at_offset (p, size)) &gt;= av-&gt;system_mem;<br>	      &#125;))<br>	  &#123;<br>	    errstr = <span class="hljs-string">&quot;free(): invalid next size (fast)&quot;</span>;<br>	    <span class="hljs-keyword">goto</span> errout;<br>	  &#125;<br>	<span class="hljs-keyword">if</span> (! have_lock)<br>	  &#123;<br>	    __libc_lock_unlock (av-&gt;mutex);<br>	    locked = <span class="hljs-number">0</span>;<br>	  &#125;<br>      &#125;<br><br>    free_perturb (chunk2mem(p), size - <span class="hljs-number">2</span> * SIZE_SZ);<br><br>    set_fastchunks(av);<br>    <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> idx = fastbin_index(size);<br>    fb = &amp;fastbin (av, idx);<br></code></pre></td></tr></table></figure>
+
+<p>set_fastchunks是通过设置arena的flag标志位来表示fast bin中是含有chunk的</p>
+<p><img src="/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826170819299.png" srcset="/img/loading.gif" lazyload></p>
+<h4 id="原子操作"><a href="#原子操作" class="headerlink" title="原子操作"></a>原子操作</h4><p>目的很简单就是将p插入fast bin中</p>
+<p>主要是下面一段的插入操作，首先old2是old的副本，p是要插入的chunk；</p>
+<p>p-&gt;fd &#x3D; old2 &#x3D; old	先将p-&gt;fd设置为old_chunk，并且做一个备份</p>
+<p>下面这个原子操作注意：</p>
+<p>catomic_compare_and_exchange_val_rel (fb, p, old2)) 这个函数目的就是想将p设置为fb的新值，主要操作就是如果fb当前的值是old2，就设置p为fb的当前值，然后返回fb更改之前的值，这样返回给old的即old2，然后old &#x3D; old2 !&#x3D; old2这个条件为假，就会退出循环；</p>
+<p>如果fb当前的值和old2不等，可能被其他线程更改了，这样就不能设置p为fb的新值(因为要更新p-&gt;fd)，这样返回给old fb的当前值，old &#x3D; fb的当前值 !&#x3D; old2条件为真，进入while循环重新设置p-&gt;fd，然后继续这样的操作，直到p写进fb才结束。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs C">  mchunkptr old = *fb, old2;<br>  <span class="hljs-type">unsigned</span> <span class="hljs-type">int</span> old_idx = ~<span class="hljs-number">0u</span>;<br>  <span class="hljs-keyword">do</span><br>    &#123;<br>        <span class="hljs-comment">/* Check that the top of the bin is not the record we are going to add</span><br><span class="hljs-comment">          (i.e., double free).  */</span><br>        <span class="hljs-keyword">if</span> (__builtin_expect (old == p, <span class="hljs-number">0</span>))<br>          &#123;<br>            errstr = <span class="hljs-string">&quot;double free or corruption (fasttop)&quot;</span>;<br>            <span class="hljs-keyword">goto</span> errout;<br>          &#125;<br>        <span class="hljs-comment">/* Check that size of fastbin chunk at the top is the same as</span><br><span class="hljs-comment">          size of the chunk that we are adding.  We can dereference OLD</span><br><span class="hljs-comment">          only if we have the lock, otherwise it might have already been</span><br><span class="hljs-comment">          deallocated.  See use of OLD_IDX below for the actual check.  */</span><br>        <span class="hljs-keyword">if</span> (have_lock &amp;&amp; old != <span class="hljs-literal">NULL</span>)<br>          old_idx = fastbin_index(chunksize(old));<br>          <br>        p-&gt;fd = old2 = old;<br>    &#125;<br>  <span class="hljs-keyword">while</span> ((old = catomic_compare_and_exchange_val_rel (fb, p, old2)) != old2);<br>  <span class="hljs-keyword">if</span> (have_lock &amp;&amp; old != <span class="hljs-literal">NULL</span> &amp;&amp; __builtin_expect (old_idx != idx, <span class="hljs-number">0</span>))<br>    &#123;<br>errstr = <span class="hljs-string">&quot;invalid fastbin entry (free)&quot;</span>;<br><span class="hljs-keyword">goto</span> errout;<br>    &#125;<br></code></pre></td></tr></table></figure>
+
+<blockquote>
+<p>#原来的指向 FB –fd–&gt; OLD </p>
+<p>#新插入的指向 FB –fd–&gt; P –fd–&gt; OLD</p>
+</blockquote>
+<p>出现的安全检查：</p>
+<p>1、这里是主要检查double free，一个chunk不能被连续释放两次</p>
+<p>2、chunk的size对应的idx要和fast bin的idx能对应上，即要将合适大小的chunk放到其对应的 fast bin中去</p>
+<blockquote>
+<p>#非法释放 FB –fd–&gt; A –fd–&gt; A </p>
+<p>#逃过检查的方式：1、free(A); 2、free(B); 3、free(A) </p>
+<p>FB –fd–&gt; A </p>
+<p>FB –fd–&gt; B –fd–&gt; A </p>
+<p>FB –fd–&gt; A –fd–&gt; B –fd–&gt; A</p>
+</blockquote>
+<h3 id="处理非fast-chunk【else-if】"><a href="#处理非fast-chunk【else-if】" class="headerlink" title="处理非fast chunk【else if】"></a>处理非fast chunk【else if】</h3><h4 id="安全检查-1"><a href="#安全检查-1" class="headerlink" title="安全检查"></a>安全检查</h4><p>上锁然后进行一系列的安全检查：</p>
+<ul>
+<li>看释放的chunk是否是top chunk</li>
+<li>chunk是否超出了arena的边界，这里使用的比较符是&gt;&#x3D;top + sizeof(top)</li>
+<li>通过next chunk看当前的chunk是否inuse，如果inuse为0，说明double free</li>
+<li>然后就是判断nextchunk的size是否在范围内</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><code class="hljs C">      <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!chunk_is_mmapped(p)) &#123; <br><span class="hljs-keyword">if</span> (! have_lock) &#123;<br>          (<span class="hljs-type">void</span>)mutex_lock(&amp;av-&gt;mutex);<br>          locked = <span class="hljs-number">1</span>;<br>        &#125;<br><br>        nextchunk = chunk_at_offset(p, size);<br><br>        <span class="hljs-comment">/* Lightweight tests: check whether the block is already the</span><br><span class="hljs-comment">          top block.  */</span><br>        <span class="hljs-keyword">if</span> (__glibc_unlikely (p == av-&gt;top))<br>          &#123;<br>      errstr = <span class="hljs-string">&quot;double free or corruption (top)&quot;</span>;<br>      <span class="hljs-keyword">goto</span> errout;<br>          &#125;<br>        <span class="hljs-comment">/* Or whether the next chunk is beyond the boundaries of the arena.  */</span><br>        <span class="hljs-keyword">if</span> (__builtin_expect (contiguous (av)<br>            &amp;&amp; (<span class="hljs-type">char</span> *) nextchunk<br>            &gt;= ((<span class="hljs-type">char</span> *) av-&gt;top + chunksize(av-&gt;top)), <span class="hljs-number">0</span>))<br>          &#123;<br>      errstr = <span class="hljs-string">&quot;double free or corruption (out)&quot;</span>;<br>      <span class="hljs-keyword">goto</span> errout;<br>          &#125;<br>        <span class="hljs-comment">/* Or whether the block is actually not marked used.  */</span><br>        <span class="hljs-keyword">if</span> (__glibc_unlikely (!prev_inuse(nextchunk)))<br>          &#123;<br>      errstr = <span class="hljs-string">&quot;double free or corruption (!prev)&quot;</span>;<br>      <span class="hljs-keyword">goto</span> errout;<br>          &#125;<br><br>        nextsize = chunksize(nextchunk);<br>        <span class="hljs-keyword">if</span> (__builtin_expect (nextchunk-&gt;size &lt;= <span class="hljs-number">2</span> * SIZE_SZ, <span class="hljs-number">0</span>)<br>      || __builtin_expect (nextsize &gt;= av-&gt;system_mem, <span class="hljs-number">0</span>))<br>          &#123;<br>      errstr = <span class="hljs-string">&quot;free(): invalid next size (normal)&quot;</span>;<br>      <span class="hljs-keyword">goto</span> errout;<br>          &#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="合并操作"><a href="#合并操作" class="headerlink" title="合并操作"></a>合并操作</h4><p>1、首先后向合并操作即试图和前面一个chunk进行合并，同时将前一个chunk进行unlink操作</p>
+<p>2、然后前向合并即试图和后面一个chunk进行合并，这个需要保证后面一个chunk不是top chunk</p>
+<ul>
+<li>如果没有和后面一个chunk进行合并，就在nextchunk中设置inuse状态为0，即没有在用</li>
+</ul>
+<p>3、将该chunk放进unsorted bin中，首先是进行安全检查，保证双向链表是符合规范的</p>
+<ul>
+<li>bck为unsorted bin，fwd是bck-&gt;fd，要保证fwd-&gt;bk &#x3D;&#x3D; bck</li>
+<li>每次向unsorted bin中插入新的chunk，都插在unsorted bin-&gt;bk位置</li>
+<li>set_head主要用来设置size的pre_inuse字段，set_foot主要用来设置下一个chunk的pre_size字段</li>
+</ul>
+<p>4、如果前向合并是与top chunk进行合并，需要设置新的top chunk</p>
+<p><img src="/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826172303730.png" srcset="/img/loading.gif" lazyload></p>
+<p><img src="/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826172308253.png" srcset="/img/loading.gif" lazyload></p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-comment">/* consolidate backward */</span><br><span class="hljs-keyword">if</span> (!prev_inuse(p)) &#123;<br>  prevsize = p-&gt;prev_size;<br>  size += prevsize;<br>  p = chunk_at_offset(p, -((<span class="hljs-type">long</span>) prevsize));<br>  unlink(av, p, bck, fwd);<br>&#125;<br><br><span class="hljs-keyword">if</span> (nextchunk != av-&gt;top) &#123;<br>      <span class="hljs-comment">/* get and clear inuse bit */</span><br>      nextinuse = inuse_bit_at_offset(nextchunk, nextsize);<br><br>      <span class="hljs-comment">/* consolidate forward */</span><br>      <span class="hljs-keyword">if</span> (!nextinuse) &#123;<br>  unlink(av, nextchunk, bck, fwd);<br>  size += nextsize;<br>      &#125; <span class="hljs-keyword">else</span><br>  clear_inuse_bit_at_offset(nextchunk, <span class="hljs-number">0</span>);<br><br>      <span class="hljs-comment">/*</span><br><span class="hljs-comment">  Place the chunk in unsorted chunk list. Chunks are</span><br><span class="hljs-comment">  not placed into regular bins until after they have</span><br><span class="hljs-comment">  been given one chance to be used in malloc.</span><br><span class="hljs-comment">      */</span><br><br>      bck = unsorted_chunks(av);<br>      fwd = bck-&gt;fd;<br>      <span class="hljs-keyword">if</span> (__glibc_unlikely (fwd-&gt;bk != bck))<br>  &#123;<br>    errstr = <span class="hljs-string">&quot;free(): corrupted unsorted chunks&quot;</span>;<br>    <span class="hljs-keyword">goto</span> errout;<br>  &#125;<br>      p-&gt;fd = fwd;<br>      p-&gt;bk = bck;<br>      <span class="hljs-keyword">if</span> (!in_smallbin_range(size))<br>  &#123;<br>    p-&gt;fd_nextsize = <span class="hljs-literal">NULL</span>;<br>    p-&gt;bk_nextsize = <span class="hljs-literal">NULL</span>;<br>  &#125;<br>      bck-&gt;fd = p;<br>      fwd-&gt;bk = p;<br><br>      set_head(p, size | PREV_INUSE);<br>      set_foot(p, size);<br><br>      check_free_chunk(av, p);<br>&#125;<br><br><span class="hljs-comment">/*</span><br><span class="hljs-comment">  If the chunk borders the current high end of memory,</span><br><span class="hljs-comment">  consolidate into top</span><br><span class="hljs-comment">*/</span><br><br><span class="hljs-keyword">else</span> &#123;<br>  size += nextsize;<br>  set_head(p, size | PREV_INUSE);<br>  av-&gt;top = p;<br>  check_chunk(av, p);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="阈值收缩"><a href="#阈值收缩" class="headerlink" title="阈值收缩"></a>阈值收缩</h4><p>1、如果当前合并后的chunk大小已经达到触发合并操作阈值</p>
+<ul>
+<li>判断fast bin中是否有chunk，如果有则进行合并操作</li>
+<li>如果是主分配区，最后是通过systrim来进行收缩的</li>
+<li>非主分配区，是通过heap_trim来进行收缩的</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs C">        <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(size) &gt;= FASTBIN_CONSOLIDATION_THRESHOLD) &#123;<br>          <span class="hljs-keyword">if</span> (have_fastchunks(av))<br>      malloc_consolidate(av);<br><br>          <span class="hljs-keyword">if</span> (av == &amp;main_arena) &#123;<br>    <span class="hljs-meta">#<span class="hljs-keyword">ifndef</span> MORECORE_CANNOT_TRIM</span><br>      <span class="hljs-keyword">if</span> ((<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(chunksize(av-&gt;top)) &gt;=<br>          (<span class="hljs-type">unsigned</span> <span class="hljs-type">long</span>)(mp_.trim_threshold))<br>        systrim(mp_.top_pad, av);<br>    <span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>          &#125; <span class="hljs-keyword">else</span> &#123;<br>      <span class="hljs-comment">/* Always try heap_trim(), even if the top chunk is not</span><br><span class="hljs-comment">        large, because the corresponding heap might go away.  */</span><br>      heap_info *heap = heap_for_ptr(top(av));<br><br>      assert(heap-&gt;ar_ptr == av);<br>      heap_trim(heap, mp_.top_pad);<br>          &#125;<br>        &#125;<br><br>        <span class="hljs-keyword">if</span> (! have_lock) &#123;<br>          assert (locked);<br>          (<span class="hljs-type">void</span>)mutex_unlock(&amp;av-&gt;mutex);<br>        &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="处理map-chunk【else】"><a href="#处理map-chunk【else】" class="headerlink" title="处理map chunk【else】"></a>处理map chunk【else】</h3><p>调用munmap_chunk</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-keyword">else</span> &#123;<br>    munmap_chunk (p);<br>  &#125;<br></code></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E5%A0%86/" class="print-no-link">#堆</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>free源码分析</div>
+      <div>https://binpwn.github.io/2023/11/27/free源码分析/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>DingJiayu</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年11月27日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="tcache源码分析">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">tcache源码分析</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/11/26/malloc%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="malloc源码分析">
+                        <span class="hidden-mobile">malloc源码分析</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://github.com/dkjiayu" target="_blank" rel="nofollow noopener"><span>DJY</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/binpwn" target="_blank" rel="nofollow noopener"><span>ZJL</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

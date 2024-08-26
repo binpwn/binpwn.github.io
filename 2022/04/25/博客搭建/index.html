@@ -16,22 +16,22 @@
   <meta name="author" content="DingJiayu">
   <meta name="keywords" content="">
   
-    <meta name="description" content="准备好好看下重定向得从下面这条语句说起：-	strace命令用于监控和记录程序执行时的系统调用 1strace .&#x2F;cast 2&gt;&amp;1 | grep -E &#x27;^write&#x27; | wc -l      重定向描述符12345678910111213141516171819202122232425262728293031323334353637383940414243">
+    <meta name="description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
 <meta property="og:type" content="article">
-<meta property="og:title" content="重定向">
-<meta property="og:url" content="https://binpwn.github.io/2023/08/21/%E9%87%8D%E5%AE%9A%E5%90%91/index.html">
+<meta property="og:title" content="博客搭建">
+<meta property="og:url" content="https://binpwn.github.io/2022/04/25/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/index.html">
 <meta property="og:site_name" content="binpwn&#39;s blog">
-<meta property="og:description" content="准备好好看下重定向得从下面这条语句说起：-	strace命令用于监控和记录程序执行时的系统调用 1strace .&#x2F;cast 2&gt;&amp;1 | grep -E &#x27;^write&#x27; | wc -l      重定向描述符12345678910111213141516171819202122232425262728293031323334353637383940414243">
+<meta property="og:description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2023-08-21T03:17:35.000Z">
-<meta property="article:modified_time" content="2024-08-26T15:54:37.891Z">
+<meta property="article:published_time" content="2022-04-24T16:24:03.000Z">
+<meta property="article:modified_time" content="2024-08-26T15:55:31.806Z">
 <meta property="article:author" content="DingJiayu">
-<meta property="article:tag" content="运维">
+<meta property="article:tag" content="环境">
 <meta name="twitter:card" content="summary_large_image">
   
   
   
-  <title>重定向 - binpwn&#39;s blog</title>
+  <title>博客搭建 - binpwn&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -197,7 +197,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="重定向"></span>
+            <span id="subtitle" data-typed-text="博客搭建"></span>
           
         </div>
 
@@ -208,8 +208,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-08-21 11:17" pubdate>
-          2023年8月21日 上午
+        <time datetime="2022-04-25 00:24" pubdate>
+          2022年4月25日 凌晨
         </time>
       </span>
     
@@ -220,7 +220,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          564 字
+          641 字
         
       </span>
     
@@ -231,7 +231,7 @@
         
         
         
-          5 分钟
+          6 分钟
         
       </span>
     
@@ -268,17 +268,94 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">重定向</h1>
+            <h1 id="seo-header">博客搭建</h1>
             
             
               <div class="markdown-body">
                 
-                <p>准备好好看下重定向得从下面这条语句说起：<br>-	strace命令用于监控和记录程序执行时的系统调用</p>
-<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs Shell">strace ./cast 2&gt;&amp;1 | grep -E &#x27;^write&#x27; | wc -l<br></code></pre></td></tr></table></figure>
-
+                <h1 id="预准备"><a href="#预准备" class="headerlink" title="预准备"></a>预准备</h1><p>就是在电脑上安装一些所需的软件</p>
 <ul>
-<li>   重定向描述符<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><code class="hljs Shell"><span class="hljs-meta prompt_"># </span><span class="language-bash"><span class="hljs-built_in">cat</span></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">从输入和输出的角度看，<span class="hljs-built_in">cat</span>命令的输出的内容是其输入内容的直接复制</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"><span class="hljs-built_in">cat</span>命令后面可以跟文件名字来读取文件的内容并且输出，如果<span class="hljs-built_in">cat</span>后面没有文件名字则从标准输入中进行读取内容</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">下面是从标准输入中读取内容，然后重定向输出到文件中，最后结束按ctrl + d</span><br>cat &gt; temp.txt<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&lt;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&lt; 是输入重定向</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash"><span class="hljs-built_in">command</span> &lt; filename，这样<span class="hljs-built_in">command</span>是从文件中读取而不是从标准输入读取</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如下面这条指令和 <span class="hljs-built_in">cat</span> filename.txt效果一样</span><br>cat &lt; filename.txt<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;是输出重定向，指的是stdout重定向</span><br>ls &gt; test.txt<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">2&gt;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">2&gt; 这是标准错误重定向</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如下面将cast程序的错误输出保存到文件中</span><br>./cast 2&gt; errorOutput.txt<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;&amp;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;&amp;这是重定向操作符，将一个文件描述符重定向至另一个文件描述符</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如下面是将cast程序的错误输出和正常输出都输出到标准输出中，然后再将内容输出到文件中</span><br>./cast 2&gt;&amp;1 &gt; allOutput.txt<br><span class="hljs-meta prompt_"> </span><br><span class="hljs-meta prompt_"> # </span><span class="language-bash">| 管道符</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">管道符是将前面一个命令的标准输出作为后面一个命令的标准输入</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">cmd1 | cmd2</span><br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&lt;&lt;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">输入重定向</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&lt;&lt; <span class="hljs-string">identifier, 这个效果就是创建一个Here Document，允许定义一个多行字符串，并且以identifier</span>为结束标志</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如 &lt;&lt; <span class="hljs-string">eof，这允许我们输入一个多行字符串最后以eof</span>为结束标志</span><br>&lt;&lt;eof<br><span class="hljs-meta prompt_">&gt; </span><span class="language-bash">123</span><br><span class="hljs-meta prompt_">&gt; </span><span class="language-bash">456</span><br><span class="hljs-meta prompt_">&gt; </span><span class="language-bash">789</span><br><span class="hljs-meta prompt_">&gt; </span><span class="language-bash">eof</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">下面是结合<span class="hljs-built_in">cat</span>、&gt;、&lt;&lt;来实现从标准输入中读取，并且保存到文件中</span><br>cat &gt; temp.txt &lt;&lt;eof<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;&gt;</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">&gt;&gt;输出重定向是用于追加内容</span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">直接向一个文件尾部添加内容</span><br>echo &quot;sss&quot; &gt;&gt; temp.txt<br><span class="hljs-meta prompt_"># </span><span class="language-bash">直接从标准输入中读取内容并且追加到文件中</span><br><span class="hljs-meta prompt_">&gt;</span><span class="language-bash">&gt; temp.txt &lt;&lt;<span class="hljs-string">eof</span></span><br><br><br><br></code></pre></td></tr></table></figure></li>
+<li><p>Git</p>
+<p>根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac</p>
+<p><code> brew install git </code></p>
+</li>
+<li><p>Node.js</p>
+<p>也是有多种不同的方式，比如MacOS可以用homebrew</p>
+<p><code> brew install node </code></p>
+</li>
+<li><p>Hexo</p>
+<p>安装好Node.js后，使用下面指令来安装hexo</p>
+<p><code> npm install -g hexo-cli </code></p>
+<p>安装过程中可能会遇到网络问题，这时换下国内镜像源即可，下面是淘宝镜像</p>
+<p><code> npm config set registry https://registry.npmmirror.com</code></p>
+</li>
 </ul>
+<h1 id="初步使用Hexo"><a href="#初步使用Hexo" class="headerlink" title="初步使用Hexo"></a>初步使用Hexo</h1><ul>
+<li><p>找一个位置创建我们的博客文件夹</p>
+<p><code> mkdir Blog </code></p>
+</li>
+<li><p>进入Blog文件夹，使用hexo进行初始化</p>
+<p><code> cd Blog </code></p>
+<p><code> hexo init </code></p>
+</li>
+<li><p>这时已经初始化完成，可以使用下面指令测试一下</p>
+<p><code> hexo s </code>打开server</p>
+<p>在网页中http:&#x2F;&#x2F;localhost:4000进行访问，如果显示blog就正常</p>
+</li>
+<li><p>下载主题</p>
+<p>正常如果是自己下载主题，需要将主题放在themes文件夹内</p>
+<p>详情就是根据主题提供的方式来，这里我使用的是<a target="_blank" rel="noopener" href="https://github.com/fluid-dev/hexo-theme-fluid">Fluid主题</a>，所以使用npm安装<br><code> npm install --save hexo-theme-fluid</code><br>这样就会将hexo-theme-fluid安装到node_moudles文件夹内，当然还要同时创建一个对应主题的配置文件</p>
+</li>
+<li><p>配置主题<br>主要是_config.yml来掌控整个配置，比如选用哪个主题等等<br>具体主题还要有其对应的配置文件，比如这里是fluid的配置文件：_config.fluid.yml</p>
+</li>
+</ul>
+<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><h2 id="github的配置"><a href="#github的配置" class="headerlink" title="github的配置"></a>github的配置</h2><ul>
+<li><p>创建一个githubPages仓库并进行相关设置</p>
+</li>
+<li><p>电脑端设置github的用户名和邮箱并生成rsa<br><code>git config --global user.name &quot;github用户名&quot;</code><br><code>git config --global user.email &quot;github注册的邮箱&quot;</code><br><code>ssh-keygen -t rsa -C &quot;github注册的邮箱&quot;</code>    </p>
+</li>
+<li><p>将本机生成的rsa设置到github仓库的上面<br><code>cat ~/.ssh/id_rsa.pub</code>将内容复制，进入github个人Settings中，SSH and GPG keys里面新建一个SSH keys粘贴进去即可</p>
+</li>
+<li><p>配置_config.yml，这里配置仓库链接时要注意使用ssh的形式，而不是https<br>在最下面添加:</p>
+<blockquote>
+</blockquote>
+<pre><code class="hljs">deploy:
+        type: git
+        repository: 自己的仓库地址，选用ssh的那个
+        branch: main
+</code></pre>
+</li>
+</ul>
+<h2 id="hexo生成相关的指令"><a href="#hexo生成相关的指令" class="headerlink" title="hexo生成相关的指令"></a>hexo生成相关的指令</h2><ul>
+<li><p>如果之前存在生成的旧版本，先clean一下<br><code>hexo clean</code></p>
+</li>
+<li><p>先在Blog内进行生成<br><code>hexo g</code>是用来generate的，会对应生成一个public文件夹，一会是将该文件夹内的内容传至github</p>
+</li>
+<li><p>准备进行上传至github<br><code>hexo d</code>是用来deploy的，会根据_config.yml配置进行上传至github上面</p>
+</li>
+</ul>
+<h2 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h2><p>格式如下：</p>
+<pre><code class="hljs">password: ******
+message: Pwn!!!
+</code></pre>
+<h2 id="插入图片"><a href="#插入图片" class="headerlink" title="插入图片"></a>插入图片</h2><pre><code class="hljs">#这个不显示图片
+参考：https://zhuanlan.zhihu.com/p/392900486?utm_id=0
+#解决：
+https://blog.csdn.net/McNeeley/article/details/131276010
+</code></pre>
+<h1 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h1><p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span><br></code></pre></td></tr></table></figure>
+
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo server<br></code></pre></td></tr></table></figure>
+
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo generate<br></code></pre></td></tr></table></figure>
+
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo deploy<br></code></pre></td></tr></table></figure>
+
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
 
                 
               </div>
@@ -297,7 +374,7 @@
     
       <span class="category-chain">
         
-  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  <a href="/categories/%E5%85%B6%E4%BB%96/" class="category-chain-item">其他</a>
   
   
 
@@ -312,7 +389,7 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/%E8%BF%90%E7%BB%B4/" class="print-no-link">#运维</a>
+        <a href="/tags/%E7%8E%AF%E5%A2%83/" class="print-no-link">#环境</a>
       
     </div>
   
@@ -324,8 +401,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>重定向</div>
-      <div>https://binpwn.github.io/2023/08/21/重定向/</div>
+      <div>博客搭建</div>
+      <div>https://binpwn.github.io/2022/04/25/博客搭建/</div>
     </div>
     <div class="license-meta">
       
@@ -337,7 +414,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2023年8月21日</div>
+          <div>2022年4月25日</div>
         </div>
       
       
@@ -369,21 +446,15 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2023/11/25/geacon-macos/" title="geacon_macos">
+                      <a href="/2023/08/21/%E9%87%8D%E5%AE%9A%E5%90%91/" title="重定向">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">geacon_macos</span>
+                        <span class="hidden-mobile">重定向</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
                   </article>
                   <article class="post-next col-6">
                     
-                    
-                      <a href="/2022/04/25/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="博客搭建">
-                        <span class="hidden-mobile">博客搭建</span>
-                        <span class="visible-mobile">下一篇</span>
-                        <i class="iconfont icon-arrowright"></i>
-                      </a>
                     
                   </article>
                 </div>
