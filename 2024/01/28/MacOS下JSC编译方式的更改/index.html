@@ -16,30 +16,28 @@
   <meta name="author" content="DingJiayu">
   <meta name="keywords" content="">
   
-    <meta name="description" content="关于tcache自glibc2.26起，加入了tcache机制，可以参考：  在线看源码：malloc.c - malloc&#x2F;malloc.c - Glibc source code (glibc-2.27) - Bootlin CTFWIKI：Tcache attack - CTF Wiki (ctf-wiki.org)  相关宏定义下面是以size_t &#x3D; 4为例  req">
+    <meta name="description" content="背景从论文的Fuzz说起，由于要做WebKit相关的论文工作，fuzzilli是一款很好的Fuzzer，但是fuzzilli针对JSC的fuzz过程是在Linux下进行的。下面探索在MacOS平台上，用fuzzilli对JSC进行fuzz的相关工作。 从WebKit的角度来讲，它只不过是一个很大的应用程序而已，所以它在Linux和MacOS均可编译，但是在不同的平台，编译的方式有点差别，这里我们做">
 <meta property="og:type" content="article">
-<meta property="og:title" content="tcache源码分析">
-<meta property="og:url" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/index.html">
+<meta property="og:title" content="MacOS下JSC编译方式的更改">
+<meta property="og:url" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/index.html">
 <meta property="og:site_name" content="binpwn&#39;s blog">
-<meta property="og:description" content="关于tcache自glibc2.26起，加入了tcache机制，可以参考：  在线看源码：malloc.c - malloc&#x2F;malloc.c - Glibc source code (glibc-2.27) - Bootlin CTFWIKI：Tcache attack - CTF Wiki (ctf-wiki.org)  相关宏定义下面是以size_t &#x3D; 4为例  req">
+<meta property="og:description" content="背景从论文的Fuzz说起，由于要做WebKit相关的论文工作，fuzzilli是一款很好的Fuzzer，但是fuzzilli针对JSC的fuzz过程是在Linux下进行的。下面探索在MacOS平台上，用fuzzilli对JSC进行fuzz的相关工作。 从WebKit的角度来讲，它只不过是一个很大的应用程序而已，所以它在Linux和MacOS均可编译，但是在不同的平台，编译的方式有点差别，这里我们做">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224035744.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224040807.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224313049.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224328563.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224340850.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224353143.png">
-<meta property="og:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224855682.png">
-<meta property="article:published_time" content="2023-11-28T15:44:46.000Z">
-<meta property="article:modified_time" content="2024-08-26T15:56:47.295Z">
+<meta property="og:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145129622.png">
+<meta property="og:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145432720.png">
+<meta property="og:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145730017.png">
+<meta property="og:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151531690.png">
+<meta property="og:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151637693.png">
+<meta property="article:published_time" content="2024-01-28T08:47:36.000Z">
+<meta property="article:modified_time" content="2024-08-28T08:52:16.461Z">
 <meta property="article:author" content="DingJiayu">
-<meta property="article:tag" content="堆">
+<meta property="article:tag" content="JSC">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://binpwn.github.io/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224035744.png">
+<meta name="twitter:image" content="https://binpwn.github.io/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145129622.png">
   
   
   
-  <title>tcache源码分析 - binpwn&#39;s blog</title>
+  <title>MacOS下JSC编译方式的更改 - binpwn&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -205,7 +203,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="tcache源码分析"></span>
+            <span id="subtitle" data-typed-text="MacOS下JSC编译方式的更改"></span>
           
         </div>
 
@@ -216,8 +214,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2023-11-28 23:44" pubdate>
-          2023年11月28日 晚上
+        <time datetime="2024-01-28 16:47" pubdate>
+          2024年1月28日 下午
         </time>
       </span>
     
@@ -228,7 +226,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          699 字
+          918 字
         
       </span>
     
@@ -239,7 +237,7 @@
         
         
         
-          6 分钟
+          8 分钟
         
       </span>
     
@@ -276,54 +274,66 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">tcache源码分析</h1>
+            <h1 id="seo-header">MacOS下JSC编译方式的更改</h1>
             
             
               <div class="markdown-body">
                 
-                <h1 id="关于tcache"><a href="#关于tcache" class="headerlink" title="关于tcache"></a>关于tcache</h1><p>自glibc2.26起，加入了tcache机制，可以参考：</p>
+                <h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>从论文的Fuzz说起，由于要做WebKit相关的论文工作，fuzzilli是一款很好的Fuzzer，但是fuzzilli针对JSC的fuzz过程是在Linux下进行的。下面探索在MacOS平台上，用fuzzilli对JSC进行fuzz的相关工作。</p>
+<p>从WebKit的角度来讲，它只不过是一个很大的应用程序而已，所以它在Linux和MacOS均可编译，但是在不同的平台，编译的方式有点差别，这里我们做的工作主要针对JS引擎。</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>编译难度</th>
+<th>JSC的形式</th>
+<th>配置方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Linux</td>
+<td>相对较易</td>
+<td>默认是编译处理静态库</td>
+<td></td>
+</tr>
+<tr>
+<td>MacOS</td>
+<td>相对较难</td>
+<td>默认编译处理是动态库</td>
+<td>Xcode配置文件</td>
+</tr>
+</tbody></table>
+<p>最初通过默认方式分别在两个平台编译JSC，对比发现Fuzzer跑的效果不一样，在MacOS平台上获取Edge的数量要远远小于Linux下的，最后归因于JSC的动态库和静态库差别导致的。</p>
+<p>JSC编译成动态库的形式，Fuzzer是获取不到其中的Edge，因为最终是编译为jsc程序，动态库并没有将相关代码插入到jsc中，静态库却将代码插入进去，获取Edge相关代码也是插入到jsc程序中的，所以才会有所不同。</p>
+<p>最后是决定在MacOS下将JSC编译为静态库的形式【转换成静态库的形式是正常的】。下面主要是围绕如何将JSC以原有的动态库项目转换成静态库。</p>
+<h2 id="修改配置文件"><a href="#修改配置文件" class="headerlink" title="修改配置文件"></a>修改配置文件</h2><p>下面修改文件的方式包含了两种，一种是从文本的形式去更改配置文件，另一种是通过Xcode去修改配置文件。</p>
+<h3 id="文本形式"><a href="#文本形式" class="headerlink" title="文本形式"></a>文本形式</h3><p>下面做的更改主要是将JSC由动态库的形式更改为静态库。</p>
+<p>在JavaScriptCore项目配置文件中，打开project.pbxproj文件：</p>
+<ul>
+<li><p>将JavaScriptCore的productType由com.apple.product-type.framework更改为com.apple.product-type.library.static</p>
+</li>
+<li><p>将该文件中的JavaScriptCore.framework更改为libJavaScriptCore.a</p>
+</li>
+</ul>
+<p>下图为以文件夹的形式打开JSC项目配置文件，然后找到project.pbxproj文件，接着以文本的形式打开。上面修改的位置是针对整个文件，所有地方都要修改。</p>
+<p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145129622.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="Xcode形式"><a href="#Xcode形式" class="headerlink" title="Xcode形式"></a>Xcode形式</h3><h4 id="更改为静态库"><a href="#更改为静态库" class="headerlink" title="更改为静态库"></a>更改为静态库</h4><p>对于Target中JavaScriptCode，需要将其编译的产物更改为静态库：</p>
+<p>Build Settings找到Mach-O Type将Dynamic Library更改为Static Library</p>
+<h4 id="更改依赖"><a href="#更改依赖" class="headerlink" title="更改依赖"></a>更改依赖</h4><p>修改完上面的内容后，JavaScriptCore已经由动态链接库的形式转换为静态库的形式，但是在Xcode中很多Target还是依赖JavaScriptCore.framework的，下面就需要手动将其更改为libJavaScriptCore.a的形式。由于编译jsc需要依赖其他Target，为了让这些Target能够编译成功，需要手动将所有相关Target都进行一个依赖调整。</p>
+<p>比如下面是将minidom依赖的JavaScriptCore由JavaScriptCore.framework更改为libJavaScriptCore.a：</p>
+<p>①、在Build Phases—&gt;Link Binary With Libraries中进行添加。</p>
+<p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145432720.png" srcset="/img/loading.gif" lazyload></p>
+<p>下面是为了解决①遗留问题，如果通过①更改完成后，编译还是报相关错误，可以通过②在命令行参数中手动添加：</p>
+<p>②、如果①设置了仍然报相关错误，就可以在命令行参数添加。在Build Settings—&gt;Linking-General—&gt;Other Linker Flags中添加对应的参数，参数的格式为-l库名</p>
+<p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145730017.png" srcset="/img/loading.gif" lazyload></p>
+<h4 id="其他调整"><a href="#其他调整" class="headerlink" title="其他调整"></a>其他调整</h4><p>下面主要解决编译过程中的一些小错误，比如没用到的函数会触发编译错误，还有就是相关警告也被当成编译错误。</p>
+<h5 id="unused-function"><a href="#unused-function" class="headerlink" title="unused function"></a>unused function</h5><p>关于unused系列，找到对应Target，可以设置是否发出对应的警告</p>
+<p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151531690.png" srcset="/img/loading.gif" lazyload></p>
+<h5 id="Treat-Warnings-as-Errors"><a href="#Treat-Warnings-as-Errors" class="headerlink" title="Treat Warnings as Errors"></a>Treat Warnings as Errors</h5><p>让警告不要当成错误处理：Treat Warnings as Errors由Yes更改为No</p>
+<p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151637693.png" srcset="/img/loading.gif" lazyload></p>
 <blockquote>
-<p>在线看源码：<a target="_blank" rel="noopener" href="https://elixir.bootlin.com/glibc/glibc-2.27/source/malloc/malloc.c">malloc.c - malloc&#x2F;malloc.c - Glibc source code (glibc-2.27) - Bootlin</a></p>
-<p>CTFWIKI：<a target="_blank" rel="noopener" href="https://ctf-wiki.org/pwn/linux/user-mode/heap/ptmalloc2/tcache-attack/">Tcache attack - CTF Wiki (ctf-wiki.org)</a></p>
+<p><a target="_blank" rel="noopener" href="https://stackoverflow.com/questions/1349115/how-do-i-change-an-existing-xcode-target-from-dynamic-to-static">https://stackoverflow.com/questions/1349115/how-do-i-change-an-existing-xcode-target-from-dynamic-to-static</a></p>
 </blockquote>
-<h2 id="相关宏定义"><a href="#相关宏定义" class="headerlink" title="相关宏定义"></a>相关宏定义</h2><p>下面是以size_t &#x3D; 4为例</p>
-<ul>
-<li>request2size：是根据用户提供的size计算对应的chunk大小</li>
-</ul>
-<p>比如用户提供20，计算的chunk大小是24，减去8字节头部，还剩16字节，然后剩下4字节是下一个chunk的pre_size字段</p>
-<ul>
-<li>tidx2usize，这个是根据tidx计算对应的用户能使用的大小</li>
-</ul>
-<p>比如idx 0，计算得到12 &#x3D;&gt;用户能使用12&#x3D;&gt;对应的chunk大小为16&#x3D;&gt;8（头部）+8（user）+4（pre_size）&#x3D;&gt;用户能使用12字节大小</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-meta">#<span class="hljs-keyword">if</span> USE_TCACHE</span><br><span class="hljs-comment">//tcache_bin的数目</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> TCACHE_MAX_BINS        64</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> MAX_TCACHE_SIZE    tidx2usize (TCACHE_MAX_BINS-1)</span><br><span class="hljs-comment">//根据idx计算对应的用户可用的最大size</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> tidx2usize(idx)    (((size_t) idx) * MALLOC_ALIGNMENT + MINSIZE - SIZE_SZ)</span><br><span class="hljs-comment">//下面的x是chunk的size，根据chunk的size计算对应的idx</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> csize2tidx(x) (((x) - MINSIZE + MALLOC_ALIGNMENT - 1) / MALLOC_ALIGNMENT)</span><br><span class="hljs-comment">//下面的x是user的size，根据用户的size计算对应的idx</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> usize2tidx(x) csize2tidx (request2size (x))</span><br><span class="hljs-comment">//每一个tcache_bin能容纳的chunk数</span><br><span class="hljs-meta"># <span class="hljs-keyword">define</span> TCACHE_FILL_COUNT 7</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-comment">//将用户所需的size转为chunk的size</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> request2size(req)                                         \  </span><br>    (((req) + SIZE_SZ + MALLOC_ALIGN_MASK &lt; MINSIZE)  ?             \<br>   MINSIZE :                                                      \<br>    ((req) + SIZE_SZ + MALLOC_ALIGN_MASK) &amp; ~MALLOC_ALIGN_MASK)<br></code></pre></td></tr></table></figure>
-
-<h2 id="相关结构体"><a href="#相关结构体" class="headerlink" title="相关结构体"></a>相关结构体</h2><p>下面是单链表结构</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">tcache_entry</span></span><br><span class="hljs-class">&#123;</span><br>    <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">tcache_entry</span> *<span class="hljs-title">next</span>;</span><br>&#125; tcache_entry;<br></code></pre></td></tr></table></figure>
-
-<p>下面是线程独有的tcache结构体，__thread关键字是为了线程局部存储TLS</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-keyword">typedef</span> <span class="hljs-class"><span class="hljs-keyword">struct</span> <span class="hljs-title">tcache_perthread_struct</span></span><br><span class="hljs-class">&#123;</span><br>  <span class="hljs-type">char</span> counts[TCACHE_MAX_BINS];<br>  tcache_entry *entries[TCACHE_MAX_BINS];<br>&#125; tcache_perthread_struct;<br><span class="hljs-type">static</span> __thread <span class="hljs-type">char</span> tcache_shutting_down = <span class="hljs-number">0</span>;<br><span class="hljs-type">static</span> __thread tcache_perthread_struct *tcache = <span class="hljs-literal">NULL</span>;<br></code></pre></td></tr></table></figure>
-
-<h2 id="相关函数"><a href="#相关函数" class="headerlink" title="相关函数"></a>相关函数</h2><p>下面这个函数是将一个chunk放进对应的tcache bin单链表</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">static</span> <span class="hljs-type">void</span> <span class="hljs-title function_">tcache_put</span> <span class="hljs-params">(mchunkptr chunk, <span class="hljs-type">size_t</span> tc_idx)</span>&#123;<br>  tcache_entry *e = (tcache_entry *) chunk2mem (chunk);<br>  assert (tc_idx &lt; TCACHE_MAX_BINS);<br>  e-&gt;next = tcache-&gt;entries[tc_idx];<br>  tcache-&gt;entries[tc_idx] = e;<br>  ++(tcache-&gt;counts[tc_idx]);<br>&#125;<br><br></code></pre></td></tr></table></figure>
-
-<p>这个是从对应tcache bin的单链表中取出一个chunk</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs C"><span class="hljs-type">static</span> <span class="hljs-type">void</span> *<span class="hljs-title function_">tcache_get</span> <span class="hljs-params">(<span class="hljs-type">size_t</span> tc_idx)</span>&#123;<br>  tcache_entry *e = tcache-&gt;entries[tc_idx];<br>  assert (tc_idx &lt; TCACHE_MAX_BINS);<br>  assert (tcache-&gt;entries[tc_idx] &gt; <span class="hljs-number">0</span>);<br>  tcache-&gt;entries[tc_idx] = e-&gt;next;<br>  --(tcache-&gt;counts[tc_idx]);<br>  <span class="hljs-keyword">return</span> (<span class="hljs-type">void</span> *) e;<br>&#125;<br></code></pre></td></tr></table></figure>
-
-<h2 id="相关应用"><a href="#相关应用" class="headerlink" title="相关应用"></a>相关应用</h2><p>这部分主要看下tcache被应用在哪里，分析一下增加了哪些操作步骤。这里只是截取添加的部分，原有的部分请参考malloc和free的代码分析</p>
-<h3 id="int-malloc"><a href="#int-malloc" class="headerlink" title="_int_malloc"></a>_int_malloc</h3><p>这里有个tcache_unsorted_count后面是为了统计已处理的unsorted chunk</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224035744.png" srcset="/img/loading.gif" lazyload></p>
-<p>下面是处理fast chunk，先获取一个victim，剩余其他的放进tcache中（前提是对应的tcache bin没有放满）</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224040807.png" srcset="/img/loading.gif" lazyload></p>
-<p>下面是small chunk，和fast chunk流程一样</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224313049.png" srcset="/img/loading.gif" lazyload></p>
-<p>下面是定义了一些变量，准备for循环处理unsorted bin时</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224328563.png" srcset="/img/loading.gif" lazyload></p>
-<p>在for循环处理unsorted chunk时，大小符合，是先将chunk放进tcache中，将return_cached设为1</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224340850.png" srcset="/img/loading.gif" lazyload></p>
-<p>这里是非size &#x3D;&#x3D;nb的情况，将unsorted chunk放进对应的bin中，然后将unsorted_count+1，如果有设置tcache_unsorted_limit，达到条件就可以直接调用tcache_get，否则是处理完unsorted bin中的chunk，最后调用tcache_get</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224353143.png" srcset="/img/loading.gif" lazyload></p>
-<h3 id="int-free"><a href="#int-free" class="headerlink" title="_int_free"></a>_int_free</h3><p>在free一块内存时，首先看看是否能够放进tcache中，在tcache bin没有放满的情况下，是先将释放的chunk存到tcache中，将tcache放满后才会像正常的free流程那样</p>
-<p><img src="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/image-20240826224855682.png" srcset="/img/loading.gif" lazyload></p>
 
                 
               </div>
@@ -342,7 +352,7 @@
     
       <span class="category-chain">
         
-  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
+  <a href="/categories/MacOS/" class="category-chain-item">MacOS</a>
   
   
 
@@ -357,7 +367,7 @@
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/%E5%A0%86/" class="print-no-link">#堆</a>
+        <a href="/tags/JSC/" class="print-no-link">#JSC</a>
       
     </div>
   
@@ -369,8 +379,8 @@
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>tcache源码分析</div>
-      <div>https://binpwn.github.io/2023/11/28/tcache源码分析/</div>
+      <div>MacOS下JSC编译方式的更改</div>
+      <div>https://binpwn.github.io/2024/01/28/MacOS下JSC编译方式的更改/</div>
     </div>
     <div class="license-meta">
       
@@ -382,7 +392,7 @@
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2023年11月28日</div>
+          <div>2024年1月28日</div>
         </div>
       
       
@@ -414,18 +424,12 @@
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/" title="MacOS下JSC编译方式的更改">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">MacOS下JSC编译方式的更改</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </article>
                   <article class="post-next col-6">
                     
                     
-                      <a href="/2023/11/27/free%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="free源码分析">
-                        <span class="hidden-mobile">free源码分析</span>
+                      <a href="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" title="tcache源码分析">
+                        <span class="hidden-mobile">tcache源码分析</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

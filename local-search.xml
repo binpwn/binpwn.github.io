@@ -4,6 +4,31 @@
   
   
   <entry>
+    <title>MacOS下JSC编译方式的更改</title>
+    <link href="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/"/>
+    <url>/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/</url>
+    
+    <content type="html"><![CDATA[<h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>从论文的Fuzz说起，由于要做WebKit相关的论文工作，fuzzilli是一款很好的Fuzzer，但是fuzzilli针对JSC的fuzz过程是在Linux下进行的。下面探索在MacOS平台上，用fuzzilli对JSC进行fuzz的相关工作。</p><p>从WebKit的角度来讲，它只不过是一个很大的应用程序而已，所以它在Linux和MacOS均可编译，但是在不同的平台，编译的方式有点差别，这里我们做的工作主要针对JS引擎。</p><table><thead><tr><th>平台</th><th>编译难度</th><th>JSC的形式</th><th>配置方式</th></tr></thead><tbody><tr><td>Linux</td><td>相对较易</td><td>默认是编译处理静态库</td><td></td></tr><tr><td>MacOS</td><td>相对较难</td><td>默认编译处理是动态库</td><td>Xcode配置文件</td></tr></tbody></table><p>最初通过默认方式分别在两个平台编译JSC，对比发现Fuzzer跑的效果不一样，在MacOS平台上获取Edge的数量要远远小于Linux下的，最后归因于JSC的动态库和静态库差别导致的。</p><p>JSC编译成动态库的形式，Fuzzer是获取不到其中的Edge，因为最终是编译为jsc程序，动态库并没有将相关代码插入到jsc中，静态库却将代码插入进去，获取Edge相关代码也是插入到jsc程序中的，所以才会有所不同。</p><p>最后是决定在MacOS下将JSC编译为静态库的形式【转换成静态库的形式是正常的】。下面主要是围绕如何将JSC以原有的动态库项目转换成静态库。</p><h2 id="修改配置文件"><a href="#修改配置文件" class="headerlink" title="修改配置文件"></a>修改配置文件</h2><p>下面修改文件的方式包含了两种，一种是从文本的形式去更改配置文件，另一种是通过Xcode去修改配置文件。</p><h3 id="文本形式"><a href="#文本形式" class="headerlink" title="文本形式"></a>文本形式</h3><p>下面做的更改主要是将JSC由动态库的形式更改为静态库。</p><p>在JavaScriptCore项目配置文件中，打开project.pbxproj文件：</p><ul><li><p>将JavaScriptCore的productType由com.apple.product-type.framework更改为com.apple.product-type.library.static</p></li><li><p>将该文件中的JavaScriptCore.framework更改为libJavaScriptCore.a</p></li></ul><p>下图为以文件夹的形式打开JSC项目配置文件，然后找到project.pbxproj文件，接着以文本的形式打开。上面修改的位置是针对整个文件，所有地方都要修改。</p><p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145129622.png"></p><h3 id="Xcode形式"><a href="#Xcode形式" class="headerlink" title="Xcode形式"></a>Xcode形式</h3><h4 id="更改为静态库"><a href="#更改为静态库" class="headerlink" title="更改为静态库"></a>更改为静态库</h4><p>对于Target中JavaScriptCode，需要将其编译的产物更改为静态库：</p><p>Build Settings找到Mach-O Type将Dynamic Library更改为Static Library</p><h4 id="更改依赖"><a href="#更改依赖" class="headerlink" title="更改依赖"></a>更改依赖</h4><p>修改完上面的内容后，JavaScriptCore已经由动态链接库的形式转换为静态库的形式，但是在Xcode中很多Target还是依赖JavaScriptCore.framework的，下面就需要手动将其更改为libJavaScriptCore.a的形式。由于编译jsc需要依赖其他Target，为了让这些Target能够编译成功，需要手动将所有相关Target都进行一个依赖调整。</p><p>比如下面是将minidom依赖的JavaScriptCore由JavaScriptCore.framework更改为libJavaScriptCore.a：</p><p>①、在Build Phases—&gt;Link Binary With Libraries中进行添加。</p><p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145432720.png"></p><p>下面是为了解决①遗留问题，如果通过①更改完成后，编译还是报相关错误，可以通过②在命令行参数中手动添加：</p><p>②、如果①设置了仍然报相关错误，就可以在命令行参数添加。在Build Settings—&gt;Linking-General—&gt;Other Linker Flags中添加对应的参数，参数的格式为-l库名</p><p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828145730017.png"></p><h4 id="其他调整"><a href="#其他调整" class="headerlink" title="其他调整"></a>其他调整</h4><p>下面主要解决编译过程中的一些小错误，比如没用到的函数会触发编译错误，还有就是相关警告也被当成编译错误。</p><h5 id="unused-function"><a href="#unused-function" class="headerlink" title="unused function"></a>unused function</h5><p>关于unused系列，找到对应Target，可以设置是否发出对应的警告</p><p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151531690.png"></p><h5 id="Treat-Warnings-as-Errors"><a href="#Treat-Warnings-as-Errors" class="headerlink" title="Treat Warnings as Errors"></a>Treat Warnings as Errors</h5><p>让警告不要当成错误处理：Treat Warnings as Errors由Yes更改为No</p><p><img src="/2024/01/28/MacOS%E4%B8%8BJSC%E7%BC%96%E8%AF%91%E6%96%B9%E5%BC%8F%E7%9A%84%E6%9B%B4%E6%94%B9/image-20240828151637693.png"></p><blockquote><p><a href="https://stackoverflow.com/questions/1349115/how-do-i-change-an-existing-xcode-target-from-dynamic-to-static">https://stackoverflow.com/questions/1349115/how-do-i-change-an-existing-xcode-target-from-dynamic-to-static</a></p></blockquote>]]></content>
+    
+    
+    <categories>
+      
+      <category>MacOS</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>JSC</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>tcache源码分析</title>
     <link href="/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/"/>
     <url>/2023/11/28/tcache%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</url>
