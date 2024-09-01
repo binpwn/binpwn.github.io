@@ -16,22 +16,30 @@
   <meta name="author" content="DingJiayu">
   <meta name="keywords" content="">
   
-    <meta name="description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
+    <meta name="description" content="buildroot&amp;nvram_faker背景在搭建路由器运行环境时，由于有些路由器固件运行时需要调用nvram相关函数，虽然固件中自带nvram相关的动态库，但是nvram是硬件上的东西最终会调用失败，为了让固件运行起来，我们需要对nvram相关函数进行劫持。所以就需要我们自己编译一个nvram相关的库，编译时就需要对应架构的交叉编译器，可以用buildroot得到。nvram_fake">
 <meta property="og:type" content="article">
-<meta property="og:title" content="博客搭建">
-<meta property="og:url" content="https://binpwn.github.io/2022/04/25/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/index.html">
+<meta property="og:title" content="IoT--buildroot&amp;nvram">
+<meta property="og:url" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/index.html">
 <meta property="og:site_name" content="binpwn&#39;s blog">
-<meta property="og:description" content="预准备就是在电脑上安装一些所需的软件  Git 根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac  brew install git   Node.js 也是有多种不同的方式，比如MacOS可以用homebrew  brew install node   Hexo 安装好Node.js后，使用下面指令来安装hexo  npm install -g hexo-cli  安装过程">
+<meta property="og:description" content="buildroot&amp;nvram_faker背景在搭建路由器运行环境时，由于有些路由器固件运行时需要调用nvram相关函数，虽然固件中自带nvram相关的动态库，但是nvram是硬件上的东西最终会调用失败，为了让固件运行起来，我们需要对nvram相关函数进行劫持。所以就需要我们自己编译一个nvram相关的库，编译时就需要对应架构的交叉编译器，可以用buildroot得到。nvram_fake">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2022-04-24T16:24:03.000Z">
-<meta property="article:modified_time" content="2024-08-26T15:55:31.806Z">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830121040275.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830121129966.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830134942256.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830135140792.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830135430318.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830135725515.png">
+<meta property="og:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830135858537.png">
+<meta property="article:published_time" content="2022-08-01T13:39:32.000Z">
+<meta property="article:modified_time" content="2024-09-01T13:42:46.839Z">
 <meta property="article:author" content="DingJiayu">
-<meta property="article:tag" content="环境">
+<meta property="article:tag" content="IoT">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/image-20240830121040275.png">
   
   
   
-  <title>博客搭建 - binpwn&#39;s blog</title>
+  <title>IoT--buildroot&amp;nvram - binpwn&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
 
@@ -197,7 +205,7 @@
       <div class="banner-text text-center fade-in-up">
         <div class="h2">
           
-            <span id="subtitle" data-typed-text="博客搭建"></span>
+            <span id="subtitle" data-typed-text="IoT--buildroot&amp;nvram"></span>
           
         </div>
 
@@ -208,8 +216,8 @@
     
       <span class="post-meta">
         <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-        <time datetime="2022-04-25 00:24" pubdate>
-          2022年4月25日 凌晨
+        <time datetime="2022-08-01 21:39" pubdate>
+          2022年8月1日 晚上
         </time>
       </span>
     
@@ -220,7 +228,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          641 字
+          1.5k 字
         
       </span>
     
@@ -231,7 +239,7 @@
         
         
         
-          6 分钟
+          13 分钟
         
       </span>
     
@@ -268,94 +276,63 @@
       <div class="container nopadding-x-md" id="board-ctn">
         <div id="board">
           <article class="post-content mx-auto">
-            <h1 id="seo-header">博客搭建</h1>
+            <h1 id="seo-header">IoT--buildroot&amp;nvram</h1>
             
             
               <div class="markdown-body">
                 
-                <h1 id="预准备"><a href="#预准备" class="headerlink" title="预准备"></a>预准备</h1><p>就是在电脑上安装一些所需的软件</p>
-<ul>
-<li><p>Git</p>
-<p>根据不同的系统有不同的安装方式，可以根据自己的系统来，我这里是用Mac</p>
-<p><code> brew install git </code></p>
-</li>
-<li><p>Node.js</p>
-<p>也是有多种不同的方式，比如MacOS可以用homebrew</p>
-<p><code> brew install node </code></p>
-</li>
-<li><p>Hexo</p>
-<p>安装好Node.js后，使用下面指令来安装hexo</p>
-<p><code> npm install -g hexo-cli </code></p>
-<p>安装过程中可能会遇到网络问题，这时换下国内镜像源即可，下面是淘宝镜像</p>
-<p><code> npm config set registry https://registry.npmmirror.com</code></p>
-</li>
-</ul>
-<h1 id="初步使用Hexo"><a href="#初步使用Hexo" class="headerlink" title="初步使用Hexo"></a>初步使用Hexo</h1><ul>
-<li><p>找一个位置创建我们的博客文件夹</p>
-<p><code> mkdir Blog </code></p>
-</li>
-<li><p>进入Blog文件夹，使用hexo进行初始化</p>
-<p><code> cd Blog </code></p>
-<p><code> hexo init </code></p>
-</li>
-<li><p>这时已经初始化完成，可以使用下面指令测试一下</p>
-<p><code> hexo s </code>打开server</p>
-<p>在网页中http:&#x2F;&#x2F;localhost:4000进行访问，如果显示blog就正常</p>
-</li>
-<li><p>下载主题</p>
-<p>正常如果是自己下载主题，需要将主题放在themes文件夹内</p>
-<p>详情就是根据主题提供的方式来，这里我使用的是<a target="_blank" rel="noopener" href="https://github.com/fluid-dev/hexo-theme-fluid">Fluid主题</a>，所以使用npm安装<br><code> npm install --save hexo-theme-fluid</code><br>这样就会将hexo-theme-fluid安装到node_moudles文件夹内，当然还要同时创建一个对应主题的配置文件</p>
-</li>
-<li><p>配置主题<br>主要是_config.yml来掌控整个配置，比如选用哪个主题等等<br>具体主题还要有其对应的配置文件，比如这里是fluid的配置文件：_config.fluid.yml</p>
-</li>
-</ul>
-<h1 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h1><h2 id="github的配置"><a href="#github的配置" class="headerlink" title="github的配置"></a>github的配置</h2><ul>
-<li><p>创建一个githubPages仓库并进行相关设置</p>
-</li>
-<li><p>电脑端设置github的用户名和邮箱并生成rsa<br><code>git config --global user.name &quot;github用户名&quot;</code><br><code>git config --global user.email &quot;github注册的邮箱&quot;</code><br><code>ssh-keygen -t rsa -C &quot;github注册的邮箱&quot;</code>    </p>
-</li>
-<li><p>将本机生成的rsa设置到github仓库的上面<br><code>cat ~/.ssh/id_rsa.pub</code>将内容复制，进入github个人Settings中，SSH and GPG keys里面新建一个SSH keys粘贴进去即可</p>
-</li>
-<li><p>配置_config.yml，这里配置仓库链接时要注意使用ssh的形式，而不是https<br>在最下面添加:</p>
+                <h1 id="buildroot-nvram-faker"><a href="#buildroot-nvram-faker" class="headerlink" title="buildroot&amp;nvram_faker"></a>buildroot&amp;nvram_faker</h1><h2 id="背景"><a href="#背景" class="headerlink" title="背景"></a>背景</h2><p>在搭建路由器运行环境时，由于有些路由器固件运行时需要调用nvram相关函数，虽然固件中自带nvram相关的动态库，但是nvram是硬件上的东西最终会调用失败，为了让固件运行起来，我们需要对nvram相关函数进行劫持。所以就需要我们自己编译一个nvram相关的库，编译时就需要对应架构的交叉编译器，可以用buildroot得到。nvram_faker就可以帮助我们劫持对应的函数，内容自定，然后用交叉编译器编译nvram_faker成动态库。</p>
+<h2 id="buildroot"><a href="#buildroot" class="headerlink" title="buildroot"></a>buildroot</h2><p>buildroot 是Linux平台上一个构建嵌入式Linux系统的框架。整个Buildroot是由Makefile脚本和Kconfig配置文件构成的。你可以和编译Linux内核一样，通过buildroot配置，menuconfig修改，编译出一个完整的可以直接烧写到机器上运行的Linux系统软件(包含boot、kernel、rootfs以及rootfs中的各种库和应用程序)。</p>
+<p>下载链接</p>
 <blockquote>
+<p>最新版：<a target="_blank" rel="noopener" href="https://buildroot.org/download.html">https://buildroot.org/download.html</a></p>
+<p>历史版本：<a target="_blank" rel="noopener" href="https://buildroot.org/downloads/">https://buildroot.org/downloads/</a></p>
 </blockquote>
-<pre><code class="hljs">deploy:
-        type: git
-        repository: 自己的仓库地址，选用ssh的那个
-        branch: main
-</code></pre>
+<h3 id="一些术语"><a href="#一些术语" class="headerlink" title="一些术语"></a>一些术语</h3><blockquote>
+<p>交叉编译器（Cross-Compiler）：它可以在一个平台（主机）上将源代码编译成另一个平台（目标）的可执行代码。</p>
+<p>交叉链接器（Cross-Linker）：它可以链接在主机上编译的目标代码，并生成可以在目标平台上运行的可执行文件。</p>
+<p>库（Libraries）：这些是预编译的代码块，它们可以被链接到你的程序中，以提供一些通用的功能。交叉编译工具链应包含可以在目标平台上运行的库。</p>
+<p>头文件（Header Files）：这些文件包含源代码中使用的函数、变量和数据结构的定义。头文件应该是针对目标平台的。</p>
+<p>调试器（Debugger）：在开发过程中，调试器用于测试和调试在主机上编译，但在目标平台上运行的代码。</p>
+<p>二进制工具（Binutils）：这些工具用于处理目标平台的二进制文件。它们包括诸如 objdump（用于显示二进制文件信息）、readelf（用于显示 ELF 文件信息）等工具。</p>
+<p>host(宿主机)和target(目标机)：例如，如果你正在一个 x86 架构的 Linux 系统上开发，而你的目标平台是 ARM 架构的嵌入式设备，你就可能需要一个交叉编译工具链。你可以使用 GCC 构建这样一个工具链，它包括 ARM 交叉编译器 (arm-linux-gnueabi-gcc)，交叉链接器 (arm-linux-gnueabi-ld)，ARM 库，以及适用于 ARM 平台的头文件。对于上面的例子，X86架构的Linux系统即为宿主系统(host system)，其运行的编译器有两种，本地编译器(the regular compilation toolchain)和交叉编译器(the cross-compilation toolchain)，它们都运行在宿主系统(x86-linux)中，但前者用于生成在宿主机上运行的二进制文件，后者用于生成在目标机(target system)上运行的程序。target文件夹内是可以直接在目标设备上运行的程序，host是存有交叉编译工具链的，运行平台就是我们运行buildroot所在的平台。</p>
+</blockquote>
+<h3 id="安装步骤"><a href="#安装步骤" class="headerlink" title="安装步骤"></a>安装步骤</h3><p>比如下面是先下载、解压、然后准备配置</p>
+<blockquote>
+<p>wget <a target="_blank" rel="noopener" href="https://buildroot.org/downloads/buildroot-2022.05.tar.xz">https://buildroot.org/downloads/buildroot-2022.05.tar.xz</a><br>tar xf buildroot-2022.05.tar.xz<br>cd buildroot-2022.05&#x2F;<br>make menuconfig</p>
+</blockquote>
+<p>下面是配置：</p>
+<ul>
+<li><p>Target options -&gt; Target Architecture -&gt; 选择cpu架构（ARC、ARM、MIPS、PowerPC等等）</p>
+<p>这里是选择对应的cpu架构，比如路由器的架构有的是MIPS，有的是ARM<img src="/2022/08/01/IoT-buildroot-nvram/image-20240830121040275.png" srcset="/img/loading.gif" lazyload></p>
+</li>
+<li><p>Toolchain -&gt; Kernel Headers选择内核版本</p>
+<p>一般是将”kernel headers”改成自己主机上的Linux版本（即运行该编译器的主机）<img src="/2022/08/01/IoT-buildroot-nvram/image-20240830121129966.png" srcset="/img/loading.gif" lazyload></p>
 </li>
 </ul>
-<h2 id="hexo生成相关的指令"><a href="#hexo生成相关的指令" class="headerlink" title="hexo生成相关的指令"></a>hexo生成相关的指令</h2><ul>
-<li><p>如果之前存在生成的旧版本，先clean一下<br><code>hexo clean</code></p>
-</li>
-<li><p>先在Blog内进行生成<br><code>hexo g</code>是用来generate的，会对应生成一个public文件夹，一会是将该文件夹内的内容传至github</p>
-</li>
-<li><p>准备进行上传至github<br><code>hexo d</code>是用来deploy的，会根据_config.yml配置进行上传至github上面</p>
-</li>
-</ul>
-<h2 id="加密"><a href="#加密" class="headerlink" title="加密"></a>加密</h2><p>格式如下：</p>
-<pre><code class="hljs">password: ******
-message: Pwn!!!
-</code></pre>
-<h2 id="插入图片"><a href="#插入图片" class="headerlink" title="插入图片"></a>插入图片</h2><pre><code class="hljs">#这个不显示图片
-参考：https://zhuanlan.zhihu.com/p/392900486?utm_id=0
-#解决：
-https://blog.csdn.net/McNeeley/article/details/131276010
-</code></pre>
-<h1 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h1><p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span><br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo server<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo generate<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs bash">$ hexo deploy<br></code></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>​	当然也可以在Toolchain配置C Library，这个是按需求</p>
+<h3 id="编译"><a href="#编译" class="headerlink" title="编译"></a>编译</h3><p>在编译之前为了保证不出错，需要进行<code>make clean</code>。当然在我们编译好之后，我们最好先将编译产物单独存起来。</p>
+<p>可以<code>make</code> 也可以 <code>make -j4</code> 使用4线程编译</p>
+<blockquote>
+<p>编译产物在output&#x2F;下面：</p>
+<p>host&#x2F;bin下存有交叉编译工具链</p>
+<p>target下是能在目标设备上直接运行的程序</p>
+</blockquote>
+<h2 id="nvram-faker"><a href="#nvram-faker" class="headerlink" title="nvram_faker"></a>nvram_faker</h2><p>在使用模拟环境运行嵌入式Linux固件中的应用程序，如无线路由器的Web服务器时，一个常见问题是应用尝试从NVRAM中读取配置参数。当没有真正的NVRAM时，这些调用会失败，导致应用无法正常启动。为此，我们带来了一个巧妙的解决方案——<code>nvram-faker</code>。<code>nvram-faker</code>是一个轻量级库，利用<code>LD_PRELOAD</code>技术拦截对<code>libnvram.so</code>的调用。通过提供一个类似INI文件格式的配置，它可以模拟NVRAM，并为查询返回合理的值，从而让目标应用能够启动并运行。</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://github.com/zcutlip/nvram-faker">zcutlip&#x2F;nvram-faker：一个简单的库，用于在模拟环境中运行嵌入式 Linux 应用程序时拦截对 libnvram 的调用。 — zcutlip&#x2F;nvram-faker: A simple library to intercept calls to libnvram when running embedded linux applications in emulated environments. (github.com)</a></p>
+</blockquote>
+<h3 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h3><p>我们可以在nvram.ini文件中配置参数</p>
+<p><img src="/2022/08/01/IoT-buildroot-nvram/image-20240830134942256.png" srcset="/img/loading.gif" lazyload></p>
+<p>如果我们想要增加对应的nvram函数，可以通过nvram_faker.c和nvram_faker.h文件。比如下面自带的nvram_get函数：</p>
+<p><img src="/2022/08/01/IoT-buildroot-nvram/image-20240830135140792.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="编译-1"><a href="#编译-1" class="headerlink" title="编译"></a>编译</h3><p>上面我们构建好了交叉编译工具链，在nvram_faker中根据不同的架构使用不同的脚本来获取交叉编译器的路径，如果脚本找不到可能需要我们进行手动添加路径：</p>
+<p><img src="/2022/08/01/IoT-buildroot-nvram/image-20240830135430318.png" srcset="/img/loading.gif" lazyload></p>
+<p>如果直接make，就会默认编译为共享库：</p>
+<p><img src="/2022/08/01/IoT-buildroot-nvram/image-20240830135725515.png" srcset="/img/loading.gif" lazyload></p>
+<p>注意程序中写的ini文件的路径是<code>./nvram.ini</code>，所以想要共享库正常运行，需要将<code>nvram.ini</code>文件放在和共享库一个目录下，一般都是放在固件的根目录下。当然我们也可以更改路径：</p>
+<p><img src="/2022/08/01/IoT-buildroot-nvram/image-20240830135858537.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="使用"><a href="#使用" class="headerlink" title="使用"></a>使用</h3><p>在编译好<code>libnvram-faker.so</code>后，将其与<code>nvram.ini</code>文件移动到合适的位置后，使用<code>LD_PRELOAD</code>来预加载我们编译好的库。</p>
 
                 
               </div>
@@ -374,7 +351,7 @@ https://blog.csdn.net/McNeeley/article/details/131276010
     
       <span class="category-chain">
         
-  <a href="/categories/%E5%85%B6%E4%BB%96/" class="category-chain-item">其他</a>
+  <a href="/categories/Linux/" class="category-chain-item">Linux</a>
   
   
 
@@ -389,7 +366,7 @@ https://blog.csdn.net/McNeeley/article/details/131276010
     <div class="post-meta">
       <i class="iconfont icon-tags"></i>
       
-        <a href="/tags/%E7%8E%AF%E5%A2%83/" class="print-no-link">#环境</a>
+        <a href="/tags/IoT/" class="print-no-link">#IoT</a>
       
     </div>
   
@@ -401,8 +378,8 @@ https://blog.csdn.net/McNeeley/article/details/131276010
 
   <div class="license-box my-3">
     <div class="license-title">
-      <div>博客搭建</div>
-      <div>https://binpwn.github.io/2022/04/25/博客搭建/</div>
+      <div>IoT--buildroot&amp;nvram</div>
+      <div>https://binpwn.github.io/2022/08/01/IoT-buildroot-nvram/</div>
     </div>
     <div class="license-meta">
       
@@ -414,7 +391,7 @@ https://blog.csdn.net/McNeeley/article/details/131276010
       
         <div class="license-meta-item license-meta-date">
           <div>发布于</div>
-          <div>2022年4月25日</div>
+          <div>2022年8月1日</div>
         </div>
       
       
@@ -446,15 +423,21 @@ https://blog.csdn.net/McNeeley/article/details/131276010
                   <article class="post-prev col-6">
                     
                     
-                      <a href="/2022/08/01/IoT-buildroot-nvram/" title="IoT--buildroot&amp;nvram">
+                      <a href="/2023/08/21/%E9%87%8D%E5%AE%9A%E5%90%91/" title="重定向">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">IoT--buildroot&amp;nvram</span>
+                        <span class="hidden-mobile">重定向</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
                   </article>
                   <article class="post-next col-6">
                     
+                    
+                      <a href="/2022/04/25/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA/" title="博客搭建">
+                        <span class="hidden-mobile">博客搭建</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
                     
                   </article>
                 </div>
